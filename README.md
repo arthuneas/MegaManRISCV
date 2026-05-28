@@ -7,6 +7,8 @@
 
 [Músicas](https://www.khinsider.com/midi/nes/mega-man-2)
 
+[Repositório Lamar](https://github.com/victorlisboa/LAMAR)
+
 
 **Requisitos:**
 1) (0,5) Música e efeitos sonoros.
@@ -25,3 +27,33 @@ um chefão.
 [OAC_Projeto_2026_1.pdf](https://github.com/user-attachments/files/28319086/OAC_Projeto_2026_1.pdf)
 
 
+# Imagens / Sprites
+
+Todos os arquivos `.data` convertidos de sprites ficam aqui.
+
+## Como converter sprites:
+
+1. Recorte o sprite do sheet como PNG
+2. **Largura DEVE ser múltiplo de 4** (ex: 16, 20, 24, 28, 32)
+3. Use o conversor: https://github.com/ABMHub/png2oac
+4. Coloque o `.data` na subpasta correta
+
+## Organização:
+
+```
+imagens/
+├── megaman/       ← Sprites do Mega Man (idle, run1-3, jump, shoot, hurt)
+├── enemies/       ← Sprites dos inimigos (met, sniper_joe, boss)
+├── tiles/         ← Tiles do mapa (chão, parede, plataforma, porta)
+├── items/         ← Itens coletáveis (vida, energia)
+├── hud/           ← Interface (barras de vida/energia)
+├── backgrounds/   ← Fundos das telas e fases
+└── effects/       ← Efeitos visuais (explosão, projétil)
+```
+
+## Formato do .data gerado:
+
+O conversor gera um arquivo com:
+- Word 0: largura em pixels
+- Word 1: altura em pixels  
+- Restante: dados de cor, 1 word por pixel
