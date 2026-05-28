@@ -27,29 +27,34 @@ um chefão.
 [OAC_Projeto_2026_1.pdf](https://github.com/user-attachments/files/28319086/OAC_Projeto_2026_1.pdf)
 
 
+# Organização do Projeto
+
+```
+MegaManRISCV/
+├── engine/              ← Motor do jogo (animação, entrada, física, 
+├── entities/            ← Entidades do jogo (Mega Man)
+├── assets/              ← Recursos do jogo
+│   ├── enemies/         ← Sprites de inimigos
+│   ├── tiles/           ← Blocos do mapa
+│   ├── items/           ← Itens coletáveis
+│   ├── hud/             ← Interface do jogo
+│   ├── backgrounds/     ← Fundos das fases
+│   └── sprites/         ← Sprites em bruto
+├── exemplos/            ← Exemplos de código
+├── main.asm             ← Arquivo principal
+├── macros.asm           ← Macros e utilitários
+```
+
 # Imagens / Sprites
 
-Todos os arquivos `.data` convertidos de sprites ficam aqui.
+Todos os arquivos `.data` convertidos de sprites ficam em `assets/`.
 
 ## Como converter sprites:
 
 1. Recorte o sprite do sheet como PNG
 2. **Largura DEVE ser múltiplo de 4** (ex: 16, 20, 24, 28, 32)
 3. Use o conversor: https://github.com/ABMHub/png2oac
-4. Coloque o `.data` na subpasta correta
-
-## Organização:
-
-```
-imagens/
-├── megaman/       ← Sprites do Mega Man (idle, run1-3, jump, shoot, hurt)
-├── enemies/       ← Sprites dos inimigos (met, sniper_joe, boss)
-├── tiles/         ← Tiles do mapa (chão, parede, plataforma, porta)
-├── items/         ← Itens coletáveis (vida, energia)
-├── hud/           ← Interface (barras de vida/energia)
-├── backgrounds/   ← Fundos das telas e fases
-└── effects/       ← Efeitos visuais (explosão, projétil)
-```
+4. Coloque o `.data` na subpasta correta dentro de `assets/`
 
 ## Formato do .data gerado:
 
