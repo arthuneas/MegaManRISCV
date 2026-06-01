@@ -289,16 +289,92 @@ MR_FX_OK:
 # Altera as coordenadas do eixo Y limitando os movimentos com barreiras de colisão simples.
 # ----------------------------------------------------------------------------------------------
 MOVE_UP:
-    la  t0, CHAR_POS              # Carrega a estrutura de coordenadas
-    lh  t1, 2(t0)                 # Carrega a coordenada Y (linha)
-    addi t1, t1, -2               # Decrementa 2 pixels (move para cima)
+    addi sp, sp, -16
+    sw   ra, 0(sp)
+    sw   s2, 4(sp)
+    sw   s3, 8(sp)
 
-    la  t2, FELIX_Y_MIN           # Carrega o teto físico
-    lh  t2, 0(t2)
-    bge t1, t2, MU_OK             # Valida se a colisão ocorreu
-    mv  t1, t2                    # Mantém o personagem fixo no teto da janela
-MU_OK:
-    sh  t1, 2(t0)                 # Salva a nova coordenada Y
+    li   s2, 0
+PULO_SUBIDA:
+    li   t0, 13
+    beq  s2, t0, CONFIG_DESGIDA
+
+    la   t0, CHAR_POS
+    lh   t1, 2(t0)
+    addi t1, t1, -1
+    
+    la   t2, FELIX_Y_MIN
+    lh   t2, 0(t2)
+    bge  t1, t2, MS_OK
+    mv   t1, t2
+MS_OK:
+    sh   t1, 2(t0)
+
+    call REDESENHAR_FRAME_PULO
+
+    addi s2, s2, 1
+    j    PULO_SUBIDA
+
+CONFIG_DESGIDA:
+    li   s2, 0
+PULO_DESCIDA:
+    li   t0, 13
+    beq  s2, t0, FIM_PULO
+
+    la   t0, CHAR_POS
+    lh   t1, 2(t0)
+    addi t1, t1, 1
+    
+    la   t2, FELIX_Y_MAX
+    lh   t2, 0(t2)
+    ble  t1, t2, MD_OK_PULO
+    mv   t1, t2
+MD_OK_PULO:
+    sh   t1, 2(t0)
+
+    call REDESENHAR_FRAME_PULO
+
+    addi s2, s2, 1
+    j    PULO_DESCIDA
+
+FIM_PULO:
+    lw   ra, 0(sp)
+    lw   s2, 4(sp)
+    lw   s3, 8(sp)
+    addi sp, sp, 16
+    ret
+
+REDESENHAR_FRAME_PULO:
+    addi sp, sp, -4
+    sw   ra, 0(sp)
+
+    xori s0, s0, 1
+
+    call SELECT_FELIX
+    
+    la   t0, CHAR_POS
+    lh   a1, 0(t0)
+    lh   a2, 2(t0)
+    mv   a3, s0
+    call PRINT
+
+    li   t0, 0xFF200604
+    sw   s0, 0(t0)
+
+    la   t0, BG_POS
+    la   a0, fundo
+    lh   a1, 0(t0)
+    lh   a2, 2(t0)
+    mv   a3, s0
+    xori a3, a3, 1
+    call PRINT_BACKGROUND
+
+    li   a0, 15
+    li   a7, 32
+    ecall
+
+    lw   ra, 0(sp)
+    addi sp, sp, 4
     ret
 
 MOVE_DOWN:
