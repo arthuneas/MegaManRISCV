@@ -39,6 +39,10 @@ FELIX_Y_MAX: .half 224            # Limite físico inferior (240 total - altura 
 FELIX_DIR:   .word 1              # Direção do Félix: 0 = Olhando para a Direita, 1 = Olhando para a Esquerda
 FELIX_FRAME: .word 0              # Contador de ciclos/frames globais usado para ditar a velocidade da animação
 
+# Novas Variáveis de Física (Gravidade e Pulo)
+VEL_Y:       .word 0              # Velocidade vertical atual do personagem
+ESTA_NO_AR:  .word 1              # Estado do pulo: 0 = No chão, 1 = No ar
+
 # ==============================================================================================
 # SEÇÃO DE CÓDIGO (.text)
 # Rotinas de inicialização, loop principal, processamento de entrada e renderização gráfica.
@@ -80,7 +84,7 @@ WAIT_KEY:
 
 # ----------------------------------------------------------------------------------------------
 # GAME_LOOP: Loop Principal do Jogo
-# Controla o fluxo cíclico: Áudio -> Animação -> Entrada -> Desenho -> Inversão de Tela -> Delay
+# Controla o fluxo cíclico: Áudio -> Animação -> Entrada -> Física/Gravidade -> Desenho -> Inversão de Tela -> Delay
 # ----------------------------------------------------------------------------------------------
 GAME_LOOP:
 
@@ -118,7 +122,7 @@ MF1:
     ecall
     sw  a0, 8(s1)                 # Atualiza o timestamp da última nota tocada na memória
     addi s3, s3, 1                # Incrementa o índice da nota
-    sw  s3, 4(s1)                 # Salva o novo índice na variável correspondente
+    sw  s3, 4(s1)                 # Salva o novo índice na variable correspondente
 
 MF0:
     # ------------------------------------------------------------------------------------------
@@ -131,6 +135,10 @@ MF0:
 
     call SELECT_FELIX             # Escolhe dinamicamente qual sprite do Félix renderizar em a0
     call KEY2                     # Captura a entrada do teclado e processa a movimentação
+    
+    # Aplica o motor de gravidade e colisão a cada ciclo do jogo
+    call APLICAR_GRAVIDADE
+
     xori s0, s0, 1                # Alterna o frame visível/lógico do Double Buffering (0 para 1 ou 1 para 0)
 
     # ------------------------------------------------------------------------------------------
@@ -178,7 +186,7 @@ KEY2:
     beq t2, t0, MOVE_RIGHT        # Se pressionado 'd', desvia para movimentação à direita
 
     li  t0, 'w'
-    beq t2, t0, MOVE_UP           # Se pressionado 'w', desvia para movimentação para cima
+    beq t2, t0, MOVE_UP           # Se pressionado 'w', desvia para rotina de impulso do pulo
 
     li  t0, 's'
     beq t2, t0, MOVE_DOWN         # Se pressionado 's', desvia para movimentação para baixo
@@ -188,7 +196,6 @@ KEY2_FIM:
 
 # ----------------------------------------------------------------------------------------------
 # MOVE_LEFT: Movimentação para a Esquerda ('a')
-# Gerencia a prioridade do movimento: primeiro altera o cenário (Scroll), depois o personagem.
 # ----------------------------------------------------------------------------------------------
 MOVE_LEFT:
     la  t0, FELIX_DIR
@@ -229,7 +236,6 @@ ML_FX_OK:
 
 # ----------------------------------------------------------------------------------------------
 # MOVE_RIGHT: Movimentação para a Direita ('d')
-# Gerencia a prioridade de movimento: move o Félix até o ponto limite e depois ativa o Scroll.
 # ----------------------------------------------------------------------------------------------
 MOVE_RIGHT:
     la  t0, FELIX_DIR
@@ -285,203 +291,26 @@ MR_FX_OK:
     ret
 
 # ----------------------------------------------------------------------------------------------
-# MOVE_UP / MOVE_DOWN: Movimentação Vertical ('w' e 's')
-# Altera as coordenadas do eixo Y limitando os movimentos com barreiras de colisão simples.
+# MOVE_UP: Impulso Inicial de Pulo ('w')
+# Só aplica força para cima se o personagem estiver firmemente apoiado em alguma superfície.
 # ----------------------------------------------------------------------------------------------
 MOVE_UP:
-    addi sp, sp, -16
-    sw   ra, 0(sp)
-    sw   s2, 4(sp)
-    sw   s3, 8(sp)
+    la  t0, ESTA_NO_AR
+    lw  t1, 0(t0)
+    bnez t1, FIM_MOVE_UP          # Se já estiver no ar, ignora a nova entrada (evita pulo infinito)
 
-    li   s2, 0
-PULO_SUBIDA:
-    li   t0, 70
-    beq  s2, t0, CONFIG_DESGIDA
+    li  t1, -8                    # Força do impulso para cima (velocidade vertical negativa)
+    la  t2, VEL_Y
+    sw  t1, 0(t2)                 # Define VEL_Y = -8
 
-    la   t0, CHAR_POS
-    lh   t1, 2(t0)
-    addi t1, t1, -1
-    
-    la   t2, FELIX_Y_MIN
-    lh   t2, 0(t2)
-    bge  t1, t2, MS_OK
-    mv   t1, t2
-MS_OK:
-    sh   t1, 2(t0)
-
-    call VERIFICA_AIR_CONTROL
-    call REDESENHAR_FRAME_PULO
-
-    addi s2, s2, 1
-    j    PULO_SUBIDA
-
-CONFIG_DESGIDA:
-    li   s2, 0
-PULO_DESCIDA:
-    li   t0, 70
-    beq  s2, t0, FIM_PULO
-
-    la   t0, CHAR_POS
-    lh   t1, 2(t0)
-    addi t1, t1, 1
-    
-    la   t2, FELIX_Y_MAX
-    lh   t2, 0(t2)
-    ble  t1, t2, MD_OK_PULO
-    mv   t1, t2
-MD_OK_PULO:
-    sh   t1, 2(t0)
-
-    call VERIFICA_AIR_CONTROL
-    call REDESENHAR_FRAME_PULO
-
-    addi s2, s2, 1
-    j    PULO_DESCIDA
-
-FIM_PULO:
-    lw   ra, 0(sp)
-    lw   s2, 4(sp)
-    lw   s3, 8(sp)
-    addi sp, sp, 16
+    li  t1, 1
+    sw  t1, 0(t0)                 # Altera o estado para ESTA_NO_AR = 1
+FIM_MOVE_UP:
     ret
 
-VERIFICA_AIR_CONTROL:
-    addi sp, sp, -4
-    sw   ra, 0(sp)
-
-    li   t1, 0xFF200000
-    lw   t0, 0(t1)
-    andi t0, t0, 0x0001
-    beq  t0, zero, FIM_AIR_CONTROL
-    lw   t2, 4(t1)
-
-    li   t0, 'a'
-    beq  t2, t0, AIR_MOVE_LEFT
-
-    li   t0, 'd'
-    beq  t2, t0, AIR_MOVE_RIGHT
-    j    FIM_AIR_CONTROL
-
-AIR_MOVE_LEFT:
-    la   t0, FELIX_DIR
-    li   t1, 1
-    sw   t1, 0(t0)
-
-    la   t0, BG_POS
-    lh   t1, 0(t0)
-    la   t2, BG_X_MIN
-    lh   t2, 0(t2)
-    beq  t1, t2, AIR_LEFT_FELIX
-
-    la   t3, CHAR_POS
-    lh   t4, 0(t3)
-    li   t5, 30
-    bgt  t4, t5, AIR_LEFT_FELIX
-
-    addi t1, t1, -2
-    bge  t1, t2, AIR_ML_BG_OK
-    mv   t1, t2
-AIR_ML_BG_OK:
-    sh   t1, 0(t0)
-    j    FIM_AIR_CONTROL
-
-AIR_LEFT_FELIX:
-    la   t3, CHAR_POS
-    lh   t4, 0(t3)
-    addi t4, t4, -2
-    la   t2, FELIX_X_MIN
-    lh   t2, 0(t2)
-    bge  t4, t2, AIR_ML_FX_OK
-    mv   t4, t2
-AIR_ML_FX_OK:
-    sh   t4, 0(t3)
-    j    FIM_AIR_CONTROL
-
-AIR_MOVE_RIGHT:
-    la   t0, FELIX_DIR
-    li   t1, 0
-    sw   t1, 0(t0)
-
-    la   t3, CHAR_POS
-    lh   t4, 0(t3)
-    li   t5, 274
-    blt  t4, t5, AIR_RIGHT_FELIX
-
-    la   t0, BG_POS
-    lh   t1, 0(t0)
-    la   t2, BG_X_MAX
-    lh   t2, 0(t2)
-    beq  t1, t2, AIR_RIGHT_FELIX
-
-    addi t1, t1, 2
-    ble  t1, t2, AIR_MR_BG_OK
-    mv   t1, t2
-AIR_MR_BG_OK:
-    sh   t1, 0(t0)
-    j    FIM_AIR_CONTROL
-
-AIR_RIGHT_FELIX:
-    la   t3, CHAR_POS
-    lh   t4, 0(t3)
-    la   t0, BG_POS
-    lh   t1, 0(t0)
-    la   t2, BG_X_MAX
-    lh   t2, 0(t2)
-    beq  t1, t2, AIR_MR_FX_LIMIT
-    li   t5, 274
-    blt  t4, t5, AIR_MR_FX_CONTINUE
-    mv   t4, t5
-    j    AIR_MR_FX_OK
-AIR_MR_FX_LIMIT:
-    la   t2, FELIX_X_MAX
-    lh   t2, 0(t2)
-    blt  t4, t2, AIR_MR_FX_CONTINUE
-    mv   t4, t2
-    j    AIR_MR_FX_OK
-AIR_MR_FX_CONTINUE:
-    addi t4, t4, 2
-AIR_MR_FX_OK:
-    sh   t4, 0(t3)
-
-FIM_AIR_CONTROL:
-    lw   ra, 0(sp)
-    addi sp, sp, 4
-    ret
-
-REDESENHAR_FRAME_PULO:
-    addi sp, sp, -4
-    sw   ra, 0(sp)
-
-    xori s0, s0, 1
-
-    call SELECT_FELIX
-    
-    la   t0, CHAR_POS
-    lh   a1, 0(t0)
-    lh   a2, 2(t0)
-    mv   a3, s0
-    call PRINT
-
-    li   t0, 0xFF200604
-    sw   s0, 0(t0)
-
-    la   t0, BG_POS
-    la   a0, fundo
-    lh   a1, 0(t0)
-    lh   a2, 2(t0)
-    mv   a3, s0
-    xori a3, a3, 1
-    call PRINT_BACKGROUND
-
-    li   a0, 15
-    li   a7, 32
-    ecall
-
-    lw   ra, 0(sp)
-    addi sp, sp, 4
-    ret
-
+# ----------------------------------------------------------------------------------------------
+# MOVE_DOWN: Agachar / Mover para Baixo ('s')
+# ----------------------------------------------------------------------------------------------
 MOVE_DOWN:
     la  t0, CHAR_POS              # Carrega a estrutura de coordenadas
     lh  t1, 2(t0)                 # Carrega a coordenada Y (linha)
@@ -496,8 +325,77 @@ MD_OK:
     ret
 
 # ----------------------------------------------------------------------------------------------
+# APLICAR_GRAVIDADE: Executa o Cálculo de Queda e Verificação Cartesiana de Plataformas
+# Executada ciclicamente pelo Game Loop.
+# ----------------------------------------------------------------------------------------------
+APLICAR_GRAVIDADE:
+    la  t0, CHAR_POS
+    lh  t1, 0(t0)                 # t1 = CHAR_POS.X
+    lh  t2, 2(t0)                 # t2 = CHAR_POS.Y
+
+    la  t3, VEL_Y
+    lw  t4, 0(t3)                 # t4 = VEL_Y atual
+
+    # 1. Aplica a velocidade atual na coordenada Y do personagem
+    add t2, t2, t4                # Novo Y = Y + VEL_Y
+    
+    # 2. Incrementa a força da gravidade na velocidade para o próximo frame
+    addi t4, t4, 1                # Gravidade simples: acelera +1 pixel por frame para baixo
+    li  t5, 6                     # Limite máximo de velocidade de queda (Terminal Velocity)
+    ble t4, t5, SALVA_VEL
+    mv  t4, t5
+SALVA_VEL:
+    sw  t4, 0(t3)                 # Grava a velocidade atualizada de volta na memória
+
+    # 3. Mapeamento Cartesiano de Blocos/Chão
+    # Bloco Metade Esquerda: Ativo quando X está entre 0 e 160 (Metade de 320)
+    li  t5, 160
+    bgt t1, t5, VERIFICA_FIM_TELA # Se X > 160, está na metade direita (sem bloco), testa queda livre
+
+    # Se está na esquerda, o bloco se comporta como chão firme a partir da linha Y = 120
+    li  t6, 120
+    bge t2, t6, COLISAO_BLOCO     # Se a queda ultrapassou ou igualou a linha do bloco, colide aqui
+    j   VALIDA_LIMITES_JANELA
+
+COLISAO_BLOCO:
+    mv  t2, t6                    # Trunca a posição vertical exatamente no topo do bloco (Y = 120)
+    li  t4, 0
+    sw  t4, 0(t3)                 # Zera a velocidade vertical (parou de cair)
+    la  t4, ESTA_NO_AR
+    sw  zero, 0(t4)               # Define ESTA_NO_AR = 0 (Está pisando em solo firme)
+    j   VALIDA_LIMITES_JANELA
+
+VERIFICA_FIM_TELA:
+    # Caso esteja na metade direita (X > 160), o único limite inferior é a base total da tela
+    la  t5, FELIX_Y_MAX
+    lh  t5, 0(t5)                 # t5 = 224 (Limite inferior absoluto)
+    blt t2, t5, MARCA_NO_AR       # Se estiver acima de 224, continua caindo em queda livre
+    mv  t2, t5                    # Se ultrapassar, fixa no chão absoluto da tela
+    li  t4, 0
+    sw  t4, 0(t3)                 # Zera a velocidade vertical
+    la  t4, ESTA_NO_AR
+    sw  zero, 0(t4)               # Zera indicador de ar
+    j   VALIDA_LIMITES_JANELA
+
+MARCA_NO_AR:
+    li  t4, 1
+    la  t5, ESTA_NO_AR
+    sw  t4, 0(t5)                 # Força o estado a continuar no ar se caiu da plataforma
+
+VALIDA_LIMITES_JANELA:
+    # Garante que o t2 (Y) respeite as bordas físicas superiores antes de consolidar na memória
+    la  t5, FELIX_Y_MIN
+    lh  t5, 0(t5)
+    bge t2, t5, Y_MIN_OK
+    mv  t2, t5                    # Trava no teto físico se a força do pulo for muito alta
+    la  t4, VEL_Y
+    sw  zero, 0(t4)               # Zera a velocidade para começar a descer imediatamente
+Y_MIN_OK:
+    sh  t2, 2(t0)                 # Grava a coordenada vertical final tratada de volta no Félix
+    ret
+
+# ----------------------------------------------------------------------------------------------
 # SELECT_FELIX: Máquina de Estados de Sprite / Animação Contínua
-# Avalia a variável de direção (FELIX_DIR) e cria a alternância temporal dos frames.
 # ----------------------------------------------------------------------------------------------
 SELECT_FELIX:
     la  t0, FELIX_DIR             # Carrega a orientação atual do personagem
@@ -532,7 +430,6 @@ NOT_REBAIXADO_LEFT:
 
 # ----------------------------------------------------------------------------------------------
 # PRINT: Renderizador Gráfico Padrão (Bitmaps Gerais)
-# Copia as matrizes de cores para a memória de vídeo do simulador usando coordenadas diretas.
 # ----------------------------------------------------------------------------------------------
 PRINT:
     li  t0, 0xFF0                 # Base do endereço do Frame Buffer do simulador Risc-V
@@ -563,7 +460,6 @@ PRINT_LINHA:
 
 # ----------------------------------------------------------------------------------------------
 # PRINT_BACKGROUND: Renderizador Especial com Suporte a Câmera Horizonal (Scroll)
-# Recorta uma janela fixa de 320x240 a partir de um cenário armazenado em tamanho maior.
 # ----------------------------------------------------------------------------------------------
 PRINT_BACKGROUND:
     li   t0, 0xFF0                # Configuração do endereço de memória de vídeo base
@@ -571,7 +467,7 @@ PRINT_BACKGROUND:
     slli t0, t0, 20               # Desloca para formar o endereço canônico (0xFF000000 / 0xFF100000)
     addi t1, a0, 8                # Avança os metadados iniciais da imagem (largura/altura)
     lw   t4, 0(a0)                # t4 = Largura real total da imagem do cenário completo
-    add  t1, t1, a1               # Soma o fator X de Scroll (a1), deslocando o ponteiro de leitura do mapa
+    add  t1, t1, a1               # Soma o factor X de Scroll (a1), deslocando o ponteiro de leitura do mapa
     li   t2, 0                    # Contador de linhas do visor (começa na linha 0)
     li   t5, 240                  # Limita a exibição vertical estritamente à altura padrão da tela (240)
 PRINT_BG_LINHA:
