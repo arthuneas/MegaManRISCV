@@ -29,9 +29,11 @@ FELIX_ALTURA:  .half 36
 BG_POS:     .half 0, 0
 OLD_BG_POS: .half 0, 0
 
-# Limites máximos e mínimos para o movimento da câmera (X)
+# Limites máximos e mínimos para o movimento da câmera (X e Y)
 BG_X_MIN:  .half 0
-BG_X_MAX:  .half 80
+BG_X_MAX:  .half 5000
+BG_Y_MIN:  .half 0
+BG_Y_MAX:  .half 2000
 
 # Limites máximos e mínimos para o Felix andar dentro da tela
 FELIX_X_MIN: .half 0
@@ -48,12 +50,24 @@ ESTA_NO_AR:  .word 1# Booleano: 1 se estiver caindo/pulando, 0 se estiver firme 
 
 # --- SISTEMA DE BLOCOS (MUNDO ABSOLUTO) ---
 # Define as plataformas do mapa. Formato: (X mínimo, X máximo, Y do topo, Y da base)
-NUM_BLOCOS:   .word 4
+NUM_BLOCOS:   .word 15
 LISTA_BLOCOS:
-    .half 0, 500, 155, 180   
-    .half 215, 250, 142, 160
-    .half 328, 370, 142, 160  
-    .half 390, 400, 130, 145     
+    .half 12, 1200, 194, 326
+    .half 196, 265, 178, 192
+    .half 280, 370, 194, 255
+    .half 385, 475, 178, 255
+    .half 490, 770, 162, 255
+    .half 785, 938, 178, 255
+    .half 953, 1401, 194, 326
+    .half 1395, 1422, 415, 572
+    .half 1435, 1572, 443, 572
+    .half 1587, 1882, 432, 572
+    
+    .half 1437, 1443, 2, 364
+    .half 1480, 1485, 2, 380
+    .half 1459, 1463, 2, 348
+    .half 1501, 1505, 2, 348
+    .half 1521, 1530, 2, 396
 
 # ==============================================================================================
 # SEÇÃO DE CÓDIGO (.text)
@@ -92,10 +106,10 @@ GAME_LOOP:
 
     la  t0, BG_POS     # Endereço do scroll do fundo atual
     la  t1, OLD_BG_POS # Endereço do scroll antigo
-    lh  t2, 0(t0)      # Lê o offset X do cenário
-    sh  t2, 0(t1)      # Salva no registro antigo
+    lw  t2, 0(t0)      # Lê o par offset (X, Y) do cenário de uma vez só
+    sw  t2, 0(t1)      # Salva no registro antigo
 
-    # --- ATUALIZAÇÃO DAMÚSICA (MIDI SYSTEM CALLS) ---
+    # --- ATUALIZAÇÃO DA MÚSICA (MIDI SYSTEM CALLS) ---
     la  s1, notas      # Ponteiro para o array de notas musicais
     lw  s2, 0(s1)      # s2 = Número total de notas na música (9)
     lw  s3, 4(s1)      # s3 = Índice da nota tocando atualmente
@@ -273,12 +287,26 @@ FIM_MOVE_UP:
 
 MOVE_DOWN:
     la  t0, CHAR_POS   
-    lh  t1, 2(t0)      # Carrega coordenada Y atual
+    lh  t1, 2(t0)      # Carrega coordenada Y atual do boneco
+    li  t5, 180        # Limite de barreira inferior para começar a rolar a tela para baixo
+    blt t1, t5, MOVE_DOWN_FELIX
+    la  t2, BG_POS     
+    lh  t3, 2(t2)      # t3 = Y da câmera
+    la  t4, BG_Y_MAX   
+    lh  t4, 0(t4)      
+    beq t3, t4, MOVE_DOWN_FELIX
+    addi t3, t3, 2     # Rola a janela 2 pixels para baixo
+    ble t3, t4, MD_BG_OK
+    mv  t3, t4
+MD_BG_OK:
+    sh  t3, 2(t2)      # Atualiza o Y da câmera
+    ret
+MOVE_DOWN_FELIX:
     addi t1, t1, 2     # Desloca 2 pixels para baixo manualmente
     la  t2, FELIX_Y_MAX
     lh  t2, 0(t2)      # Y máximo da tela
     ble t1, t2, MD_OK  
-    mv  t1, t2         # Limita o movimento no chão absoluto
+    mv  t1, t2         # Limita o movimento no chão absoluto da tela interna
 MD_OK:
     sh  t1, 2(t0)      # Atualiza o Y na memória
     ret
@@ -299,9 +327,44 @@ APLICAR_GRAVIDADE:
     la  t3, VEL_Y      
     lw  t4, 0(t3)      # t4 = Velocidade vertical atual
 
+    # Se a velocidade for negativa (subindo) e o Felix estiver muito alto, rola a janela para cima
+    bgez t4, GRAVIDADE_DESCENDO
+    li   t5, 40        # Se o Y do boneco for menor que 40 pixels da parte superior
+    bgt  t2, t5, GRAVIDADE_DESCENDO
+    la   t6, BG_POS    
+    lh   s2, 2(t6)     # Y da câmera
+    la   s3, BG_Y_MIN  
+    lh   s3, 0(s3)     
+    beq  s2, s3, GRAVIDADE_DESCENDO
+    add  s2, s2, t4    # Decrementa o Y da janela baseado na velocidade de subida
+    bge  s2, s3, MV_BG_UP_OK
+    mv   s2, s3
+MV_BG_UP_OK:
+    sh   s2, 2(t6)     # Salva nova posição Y do cenário
+    j    CALC_GRAVIDADE
+
+GRAVIDADE_DESCENDO:
+    # Se a velocidade for positiva (caindo) e o Felix estiver muito baixo, rola a janela para baixo
+    blez t4, CALC_TERRA
+    li   t5, 180       # Se o Y do boneco passar de 180 pixels
+    blt  t2, t5, CALC_TERRA
+    la   t6, BG_POS    
+    lh   s2, 2(t6)     # Y da câmera
+    la   s3, BG_Y_MAX  
+    lh   s3, 0(s3)     
+    beq  s2, s3, CALC_TERRA
+    add  s2, s2, t4    # Incrementa o Y da janela baseado na velocidade de queda
+    ble  s2, s3, MV_BG_DOWN_OK
+    mv   s2, s3
+MV_BG_DOWN_OK:
+    sh   s2, 2(t6)     # Salva nova posição Y do cenário
+    j    CALC_GRAVIDADE
+
+CALC_TERRA:
     add t2, t2, t4     # Modifica a posição da cabeça com base na velocidade
     add s10, s10, t4   # Modifica a posição dos pés com base na velocidade
     
+CALC_GRAVIDADE:
     addi t4, t4, 1     # GRAVIDADE: Aumenta a velocidade de queda em +1 pixel por frame
     li  t5, 6          # Limite de velocidade de queda (Velocidade Terminal)
     ble t4, t5, SALVA_VEL 
@@ -311,6 +374,7 @@ SALVA_VEL:
 
     la  t5, BG_POS     
     lh  s2, 0(t5)      # s2 = Posição atual de rolagem da câmera (Scroll X)
+    lh  s3, 2(t5)      # s3 = Posição atual de rolagem da câmera (Scroll Y)
 
     la  t6, NUM_BLOCOS 
     lw  t6, 0(t6)      # t6 = Contador para o loop de plataformas (4 blocos)
@@ -320,11 +384,13 @@ LOOP_GRAV:
     beq t6, zero, CHAO_ABS # Se testou todos os blocos e nenhum colidiu, cai no chão do mundo
     lh  a4, 0(t3)      # a4 = X mínimo real do bloco no mundo
     lh  a5, 2(t3)      # a5 = X máximo real do bloco no mundo
-    lh  a6, 4(t3)      # a6 = Y do topo do bloco
-    lh  a7, 6(t3)      # a7 = Y da base do bloco
+    lh  a6, 4(t3)      # a6 = Y do topo do bloco real
+    lh  a7, 6(t3)      # a7 = Y da base do bloco real
 
-    sub a4, a4, s2     # Converte o Xmin real do bloco para a coordenada da tela com base no Scroll
-    sub a5, a5, s2     # Converte o Xmax real do bloco para a coordenada da tela com base no Scroll
+    sub a4, a4, s2     # Converte o Xmin real do bloco para a coordenada da tela com base no Scroll X
+    sub a5, a5, s2     # Converte o Xmax real do bloco para a coordenada da tela com base no Scroll X
+    sub a6, a6, s3     # Converte o Y do topo para a coordenada da tela com base no Scroll Y
+    sub a7, a7, s3     # Converte o Y da base para a coordenada da tela com base no Scroll Y
 
     blt s11, a4, PROX_GRAV # Se a direita do Felix é menor que o início do bloco, não há colisão
     bgt t1, a5, PROX_GRAV  # Se a esquerda do Felix é maior que o fim do bloco, não há colisão
@@ -333,13 +399,13 @@ LOOP_GRAV:
     bge s7, zero, CHECK_CHAO_BLOCO # Se a velocidade for positiva ou zero (caindo), pula para testar pisada
 
     # --- COLISÃO COM O TETO DO BLOCO (Subindo no Pulo) ---
-    blt t2, a7, PROX_GRAV  # Se o topo do Felix passou direto para cima da base do bloco, ignora
-    bgt t2, a6, CHECK_CHAO_BLOCO # Se o topo está abaixo do topo do bloco, testa pisada
+    blt t2, a7, PROX_GRAV  # Se o topo da cabeça ainda está abaixo da base do bloco, pula para o próximo
+    blt t2, a6, PROX_GRAV  # Se já passou completamente por cima do bloco, pula
     
-    mv  t2, a7         # Bateu a cabeça! Força a posição Y do topo a ficar rente à base do bloco
+    mv  t2, a7         # CORREÇÃO: Bateu a cabeça de verdade! Trava o topo da cabeça rente à base do bloco
     li  s7, 0          
     la  s8, VEL_Y      
-    sw  s7, 0(s8)      # Zera a velocidade vertical imediatamente (cancela a subida)
+    sw  s7, 0(s8)      # Zera a velocidade vertical imediatamente para iniciar a queda livre
     j   FIM_GRAV
 
 CHECK_CHAO_BLOCO:
@@ -398,9 +464,11 @@ PROCESSAR_COLISOES_LATERAIS:
 
     la  t5, BG_POS     
     lh  s2, 0(t5)      # s2 = Scroll X da câmera atual
+    lh  s4, 2(t5)      # s4 = Scroll Y da câmera atual
 
     la  s5, OLD_BG_POS 
     lh  s3, 0(s5)      # s3 = Scroll X da câmera no frame passado
+    lh  s1, 2(s5)      # s1 = Scroll Y da câmera no frame passado
 
     la  t6, NUM_BLOCOS 
     lw  t6, 0(t6)      # t6 = Número de blocos a checar (4)
@@ -413,20 +481,22 @@ LOOP_LAT:
     lh  a7, 6(t3)      # Ybottom absoluto do bloco
 
     # --- AJUSTE RETROATIVO (FRAME ANTERIOR) ---
-    sub s4, a4, s3     # s4 = Xmin do bloco na tela no frame passado
+    sub s7, a4, s3     # s7 = Xmin do bloco na tela no frame passado
     sub s6, a5, s3     # s6 = Xmax do bloco na tela no frame passado
 
     # --- AJUSTE ATUAL ---
     sub a4, a4, s2     # a4 = Xmin do bloco na tela agora
     sub a5, a5, s2     # a5 = Xmax do bloco na tela agora
+    sub a6, a6, s4     # Ytop na tela agora
+    sub a7, a7, s4     # Ybottom na tela agora
 
     # Checa se o Felix está verticalmente alinhado com o bloco. Se não estiver, ignora a colisão
     blt s10, a6, PROX_LAT # Pés acima do bloco -> Sem colisão lateral
     bgt t2, a7, PROX_LAT  # Cabeça abaixo do bloco -> Sem colisão lateral
 
     # LÓGICA DA ORIGEM: Descobre de onde o Felix veio para saber para onde empurrá-lo
-    add s7, t4, s11    # s7 = Lado direito do Felix no frame anterior
-    ble s7, s4, CHECA_PAREDE_ESQ # Se ele estava totalmente à esquerda da barreira, colidiu vindo da esquerda
+    add s5, t4, s11    # s5 = Lado direito do Felix no frame anterior
+    ble s5, s7, CHECA_PAREDE_ESQ # Se ele estava totalmente à esquerda da barreira, colidiu vindo da esquerda
 
     bge t4, s6, CHECA_PAREDE_DIR # Se ele estava totalmente à direita da barreira, colidiu vindo da direita
     j   PROX_LAT       # Se já estava dentro ou cruzado de outra forma, pula
@@ -516,6 +586,12 @@ PRINT_BACKGROUND:
     slli t0, t0, 20    # Gera base 0xFF000000 ou 0xFF100000
     addi t1, a0, 8     # Pula os metadados da estrutura de imagem do fundo
     lw   t4, 0(a0)     # Carrega a largura interna total da imagem de fundo
+    
+    la   t2, BG_POS    # Endereço das variáveis da câmera
+    lh   t2, 2(t2)     # t2 = Posição vertical (Scroll Y) atualizada da câmera
+    
+    mul  t2, t2, t4    # Descobre a linha da matriz de origem pulando larguras completas
+    add  t1, t1, t2    # Adiciona esse salto vertical na origem da imagem
     add  t1, t1, a1    # Aplica o offset X do corte da câmera na origem da imagem
     li   t2, 0         # Contador de linhas da tela
     li   t5, 240       # Altura máxima da tela de vídeo
