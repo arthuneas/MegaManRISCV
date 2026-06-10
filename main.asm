@@ -50,7 +50,7 @@ ESTA_NO_AR:  .word 1# Booleano: 1 se estiver caindo/pulando, 0 se estiver firme 
 
 # --- SISTEMA DE BLOCOS (MUNDO ABSOLUTO) ---
 # Define as plataformas do mapa. Formato: (X mínimo, X máximo, Y do topo, Y da base)
-NUM_BLOCOS:   .word 15
+NUM_BLOCOS:   .word 22
 LISTA_BLOCOS:
     .half 12, 1200, 194, 326
     .half 196, 265, 178, 192
@@ -68,6 +68,15 @@ LISTA_BLOCOS:
     .half 1459, 1463, 2, 348
     .half 1501, 1505, 2, 348
     .half 1521, 1530, 2, 396
+
+    .half 1547, 1591, 2, 364
+    .half 1610, 1671, 2, 348
+    .half 1709, 1734, 302, 317
+    .half 1751, 1818, 302, 349
+    .half 1835, 1881, 302, 381
+    .half 1897, 1945, 128, 429
+
+    .half 1377, 1380, 329, 412
 
 # ==============================================================================================
 # SEÇÃO DE CÓDIGO (.text)
