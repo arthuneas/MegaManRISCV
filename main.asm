@@ -1,14 +1,18 @@
 .data
 
-.include "imagens/felix.data"
+.include "imagens/megaman_direita.data"
 .include "imagens/fundo.data"
 .include "imagens/tile.data"
 .include "imagens/telainicial.data"
-.include "imagens/AndarPDireitaFelix.data"
-.include "imagens/AndarPEsquerdaFelix.data"
-.include "imagens/FelixOutroLado.data"
-.include "imagens/FelixOutroLadoRebaixado.data"
-.include "imagens/FelixRebaixado.data"
+.include "imagens/megaman_correndo_direita1.data"
+.include "imagens/megaman_correndo_direita2.data"
+.include "imagens/megaman_correndo_direita3.data"
+.include "imagens/megaman_correndo_esquerda1.data"
+.include "imagens/megaman_correndo_esquerda2.data"
+.include "imagens/megaman_correndo_esquerda3.data"
+.include "imagens/megaman_esquerda.data"
+.include "imagens/megaman_piscando_esquerda.data"
+.include "imagens/megaman_piscando_direita.data"
 
 notas: .word 9, 0, 0, 67, 1000, 0, 74, 1000, 0, 70, 1500, 0, 69, 500, 0, 67, 500, 0, 70, 500, 0, 69, 500, 0, 67, 500, 0, 66, 500, 0,
 
@@ -16,7 +20,7 @@ CHAR_POS:     .half 30, 50
 OLD_CHAR_POS: .half 30, 50       
 
 FELIX_LARGURA: .half 24            
-FELIX_ALTURA:  .half 36            
+FELIX_ALTURA:  .half 24            
 
 BG_POS:     .half 0, 0
 OLD_BG_POS: .half 0, 0
@@ -31,11 +35,19 @@ FELIX_X_MAX: .half 304
 FELIX_Y_MIN: .half 0
 FELIX_Y_MAX: .half 224
 
-FELIX_DIR:   .word 1
-FELIX_FRAME: .word 0
+FELIX_DIR:    .word 1
+FELIX_FRAME:  .word 0
+ESTA_MOVENDO: .word 0
 
 VEL_Y:       .word 0
 ESTA_NO_AR:  .word 1
+ESTA_NA_ESCADA: .word 0
+
+NUM_ESCADAS: .word 2
+LISTA_ESCADAS:
+    .half 1417, 1421, 195, 364
+    .half 1688, 1692, 192, 380
+
 
 NUM_BLOCOS:   .word 22
 LISTA_BLOCOS:
@@ -86,24 +98,31 @@ WAIT_KEY:
     lw  t2, 4(t1)      
     sw  t2, 12(t1)     
 
-    la   a0, fundo     
-    lh   a1, 0(a0)     
-    li   a2, 0         
-    li   a3, 0         
+    la  a0, fundo     
+    lh  a1, 0(a0)     
+    li  a2, 0          
+    li  a3, 0          
     call PRINT_BACKGROUND
-    li   a3, 1         
+    li  a3, 1          
     call PRINT_BACKGROUND
 
 GAME_LOOP:
     la  t0, CHAR_POS   
     la  t1, OLD_CHAR_POS
-    lw  t2, 0(t0)      
-    sw  t2, 0(t1)      
+    lh  t2, 0(t0)      
+    sh  t2, 0(t1)      
+    lh  t2, 2(t0)      
+    sh  t2, 2(t1)      
 
     la  t0, BG_POS     
     la  t1, OLD_BG_POS 
-    lw  t2, 0(t0)      
-    sw  t2, 0(t1)      
+    lh  t2, 0(t0)      
+    sh  t2, 0(t1)      
+    lh  t2, 2(t0)      
+    sh  t2, 2(t1)      
+
+    la  t0, ESTA_MOVENDO
+    sw  zero, 0(t0)
 
     la  s1, notas      
     lw  s2, 0(s1)      
@@ -140,10 +159,11 @@ MF0:
     addi t1, t1, 1     
     sw  t1, 0(t0)      
 
-    call SELECT_FELIX                 
+    call CHECAR_ESCADA
     call KEY2                         
     call APLICAR_GRAVIDADE            
     call PROCESSAR_COLISOES_LATERAIS  
+    call SELECT_FELIX                 
 
     xori s0, s0, 1     
     la  t0, CHAR_POS   
@@ -168,20 +188,74 @@ MF0:
     ecall              
     j GAME_LOOP        
 
+CHECAR_ESCADA:
+    la  t0, CHAR_POS
+    lh  t1, 0(t0)      
+    lh  t2, 2(t0)      
+    la  t3, FELIX_LARGURA
+    lh  t3, 0(t3)
+    add t3, t1, t3     
+    la  t4, FELIX_ALTURA
+    lh  t4, 0(t4)
+    add t4, t2, t4     
+
+    la  t5, BG_POS
+    lh  s2, 0(t5)      
+    lh  s3, 2(t5)      
+
+    la  t6, NUM_ESCADAS
+    lw  t6, 0(t6)
+    la  s4, LISTA_ESCADAS
+
+LOOP_CHECK_ESCADA:
+    beq t6, zero, FORA_DA_ESCADA
+    lh  a4, 0(s4)      
+    lh  a5, 2(s4)      
+    lh  a6, 4(s4)      
+    lh  a7, 6(s4)      
+
+    sub a4, a4, s2
+    sub a5, a5, s2
+    sub a6, a6, s3
+    sub a7, a7, s3
+
+    blt t3, a4, PROX_ESCADA
+    bgt t1, a5, PROX_ESCADA
+    blt t4, a6, PROX_ESCADA
+    bgt t2, a7, PROX_ESCADA
+
+    li  t0, 1
+    la  t1, ESTA_NA_ESCADA
+    sw  t0, 0(t1)
+    ret
+
+PROX_ESCADA:
+    addi s4, s4, 8
+    addi t6, t6, -1
+    j LOOP_CHECK_ESCADA
+
+FORA_DA_ESCADA:
+    la  t0, ESTA_NA_ESCADA
+    sw  zero, 0(t0)
+    ret
+
 KEY2:
     li  t1, 0xFF200000 
     lw  t0, 0(t1)      
     andi t0, t0, 0x0001
     beq  t0, zero, KEY2_CHECAR_AR 
-    lw   t2, 4(t1)      
+    lw  t2, 4(t1)      
     j    KEY2_PROCESSA
 KEY2_CHECAR_AR:
-    la   t0, ESTA_NO_AR
-    lw   t3, 0(t0)      
+    la  t0, ESTA_NA_ESCADA
+    lw  t3, 0(t0)
+    bnez t3, KEY2_CONTINUO
+    la  t0, ESTA_NO_AR
+    lw  t3, 0(t0)      
     bnez t3, KEY2_CONTINUO 
     j    KEY2_FIM
 KEY2_CONTINUO:
-    lw   t2, 4(t1)      
+    lw  t2, 4(t1)      
 KEY2_PROCESSA:
     li  t0, 'a'
     beq t2, t0, MOVE_LEFT 
@@ -195,6 +269,9 @@ KEY2_FIM:
     ret
 
 MOVE_LEFT:
+    li  t4, 1
+    la  t3, ESTA_MOVENDO
+    sw  t4, 0(t3)
     la  t0, FELIX_DIR  
     li  t1, 1          
     sw  t1, 0(t0)      
@@ -226,6 +303,9 @@ ML_FX_OK:
     ret
 
 MOVE_RIGHT:
+    li  t4, 1
+    la  t3, ESTA_MOVENDO
+    sw  t4, 0(t3)
     la  t0, FELIX_DIR  
     li  t1, 0          
     sw  t1, 0(t0)      
@@ -269,10 +349,38 @@ MR_FX_OK:
     ret
 
 MOVE_UP:
+    la  t0, ESTA_NA_ESCADA
+    lw  t1, 0(t0)
+    beqz t1, JUMP_LOGIC
+    la  t0, CHAR_POS
+    lh  t1, 2(t0)
+    li  t5, 40
+    bgt t1, t5, MOVE_UP_FELIX_ESCADA
+    la  t2, BG_POS
+    lh  t3, 2(t2)
+    la  t4, BG_Y_MIN
+    lh  t4, 0(t4)
+    beq t3, t4, MOVE_UP_FELIX_ESCADA
+    addi t3, t3, -2
+    bge t3, t4, MU_BG_OK
+    mv  t3, t4
+MU_BG_OK:
+    sh  t3, 2(t2)
+    ret
+MOVE_UP_FELIX_ESCADA:
+    addi t1, t1, -2
+    la  t2, FELIX_Y_MIN
+    lh  t2, 0(t2)
+    bge t1, t2, MU_FX_OK
+    mv  t1, t2
+MU_FX_OK:
+    sh  t1, 2(t0)
+    ret
+JUMP_LOGIC:
     la  t0, ESTA_NO_AR 
     lw  t1, 0(t0)      
     bnez t1, FIM_MOVE_UP 
-    li  t1, -10        
+    li  t1, -8        
     la  t2, VEL_Y      
     sw  t1, 0(t2)      
     li  t1, 1          
@@ -281,6 +389,34 @@ FIM_MOVE_UP:
     ret
 
 MOVE_DOWN:
+    la  t0, ESTA_NA_ESCADA
+    lw  t1, 0(t0)
+    beqz t1, NORMAL_DOWN
+    la  t0, CHAR_POS
+    lh  t1, 2(t0)
+    li  t5, 180
+    blt t1, t5, MOVE_DOWN_FELIX_ESCADA
+    la  t2, BG_POS
+    lh  t3, 2(t2)
+    la  t4, BG_Y_MAX
+    lh  t4, 0(t4)
+    beq t3, t4, MOVE_DOWN_FELIX_ESCADA
+    addi t3, t3, 2
+    ble t3, t4, MD_ESCADA_BG_OK
+    mv  t3, t4
+MD_ESCADA_BG_OK:
+    sh  t3, 2(t2)
+    ret
+MOVE_DOWN_FELIX_ESCADA:
+    addi t1, t1, 2
+    la  t2, FELIX_Y_MAX
+    lh  t2, 0(t2)
+    ble t1, t2, MD_ESCADA_FX_OK
+    mv  t1, t2
+MD_ESCADA_FX_OK:
+    sh  t1, 2(t0)
+    ret
+NORMAL_DOWN:
     la  t0, CHAR_POS   
     lh  t1, 2(t0)      
     li  t5, 180        
@@ -307,6 +443,14 @@ MD_OK:
     ret
 
 APLICAR_GRAVIDADE:
+    la  t0, ESTA_NA_ESCADA
+    lw  t1, 0(t0)
+    beqz t1, GRAVIDADE_NORMAL
+    la  t0, VEL_Y
+    sw  zero, 0(t0)
+    ret
+
+GRAVIDADE_NORMAL:
     la  t0, CHAR_POS   
     lh  t1, 0(t0)      
     lh  t2, 2(t0)      
@@ -323,8 +467,8 @@ APLICAR_GRAVIDADE:
     lw  t4, 0(t3)      
 
     bgez t4, GRAVIDADE_DESCENDO
-    li   t5, 40        
-    bgt  t2, t5, GRAVIDADE_DESCENDO
+    li  t5, 40         
+    bgt t2, t5, GRAVIDADE_DESCENDO
     la   t6, BG_POS    
     lh   s2, 2(t6)     
     la   s3, BG_Y_MIN  
@@ -366,8 +510,8 @@ SALVA_VEL:
     sw  t4, 0(t3)      
 
     la  t5, BG_POS     
-    lh   s2, 0(t5)      
-    lh   s3, 2(t5)      
+    lh   s2, 0(t5)     
+    lh   s3, 2(t5)     
 
     la  t6, NUM_BLOCOS 
     lw  t6, 0(t6)      
@@ -508,32 +652,83 @@ FIM_LAT:
     ret
 
 SELECT_FELIX:
+    la  t0, ESTA_MOVENDO
+    lw  t1, 0(t0)
+    bnez t1, ANIMAR_ANDANDO
+
     la  t0, FELIX_DIR  
     lw  t0, 0(t0)      
-    beq t0, zero, FELIX_RIGHT
-    li  t1, 1          
-    beq t0, t1, FELIX_LEFT
-FELIX_RIGHT:
+    beq t0, zero, PARADO_RIGHT
+    
+PARADO_LEFT:
     la  t2, FELIX_FRAME
     lw  t0, 0(t2)      
-    srli t0, t0, 2     
-    andi t0, t0, 1     
-    bnez t0, NOT_REBAIXADO 
-    la   a0, FelixRebaixado 
-    ret
-NOT_REBAIXADO:
-    la   a0, felix     
-    ret
-FELIX_LEFT:
-    la  t2, FELIX_FRAME
-    lw  t0, 0(t2)      
-    srli t0, t0, 2     
+    srli t0, t0, 3     
     andi t0, t0, 1     
     bnez t0, NOT_REBAIXADO_LEFT
-    la   a0, FelixOutroLadoRebaixado 
+    la   a0, megaman_piscando_esquerda 
     ret
 NOT_REBAIXADO_LEFT:
-    la   a0, FelixOutroLado 
+    la   a0, megaman_esquerda 
+    ret
+
+PARADO_RIGHT:
+    la  t2, FELIX_FRAME
+    lw  t0, 0(t2)      
+    srli t0, t0, 3     
+    andi t0, t0, 1     
+    bnez t0, NOT_REBAIXADO 
+    la   a0, megaman_piscando_direita 
+    ret
+NOT_REBAIXADO:
+    la   a0, megaman_direita     
+    ret
+
+ANIMAR_ANDANDO:
+    la  t0, FELIX_DIR
+    lw  t0, 0(t0)
+    beq t0, zero, ANDANDO_RIGHT
+
+ANDANDO_LEFT:
+    la  t2, FELIX_FRAME
+    lw  t0, 0(t2)
+    srli t0, t0, 2
+    li  t1, 3
+    rem t0, t0, t1
+    
+    li  t1, 1
+    beq t0, t1, RUN_L2
+    li  t1, 2
+    beq t0, t1, RUN_L3
+RUN_L1:
+    la  a0, megaman_correndo_esquerda1
+    ret
+RUN_L2:
+    la  a0, megaman_correndo_esquerda2
+    ret
+RUN_L3:
+    la  a0, megaman_correndo_esquerda3
+    ret
+
+ANDANDO_RIGHT:
+    la  t2, FELIX_FRAME
+    lw  t0, 0(t2)
+    srli t0, t0, 2
+    li  t1, 3
+    rem t0, t0, t1
+    
+    li  t1, 1
+    beq t0, t1, RUN_R2
+    li  t1, 2
+    beq t0, t1, RUN_R3
+RUN_R1:
+    la  a0, megaman_correndo_direita1
+    ret
+RUN_R2:
+    la  a0, megaman_correndo_direita2
+    ret
+RUN_R3:
+    la  a0, megaman_correndo_direita3
     ret
 
 PRINT:

@@ -1,0 +1,167 @@
+# ==============================================================================================
+# SEÇÃO DE DADOS (.data)
+# ==============================================================================================
+.data
+
+# Inclusão dos arquivos binários das imagens (matrizes de pixels e dimensões)
+.include "imagens/felix.data"
+.include "imagens/fundo.data"
+.include "imagens/tile.data"
+.include "imagens/telainicial.data"
+.include "imagens/AndarPDireitaFelix.data"
+.include "imagens/AndarPEsquerdaFelix.data"
+.include "imagens/FelixOutroLado.data"
+.include "imagens/FelixOutroLadoRebaixado.data"
+.include "imagens/FelixRebaixado.data"
+
+# Trilha sonora organizada em blocos de 3 words: [Pitch/Nota, Duração em ms, Canal/Instrumento]
+notas: .word 9, 0, 0, 67, 1000, 0, 74, 1000, 0, 70, 1500, 0, 69, 500, 0, 67, 500, 0, 70, 500, 0, 69, 500, 0, 67, 500, 0, 66, 500, 0,
+
+# Posição atual e anterior do Felix na tela (armazenados como Half-Word, 16 bits cada: X, Y)
+CHAR_POS:     .half 30, 50
+OLD_CHAR_POS: .half 30, 50       
+
+# --- DIMENSÕES DO PERSONAGEM (CORPO) ---
+FELIX_LARGURA: .half 24            
+FELIX_ALTURA:  .half 36            
+
+# Posição de rolagem (Scroll) do cenário de fundo
+BG_POS:     .half 0, 0
+OLD_BG_POS: .half 0, 0
+
+# Limites máximos e mínimos para o movimento da câmera (X)
+BG_X_MIN:  .half 0
+BG_X_MAX:  .half 600
+
+# Limites máximos e mínimos para o Felix andar dentro da tela
+FELIX_X_MIN: .half 0
+FELIX_X_MAX: .half 304
+FELIX_Y_MIN: .half 0
+FELIX_Y_MAX: .half 224
+
+FELIX_DIR:   .word 1# Direção do olhar: 0 = Direita, 1 = Esquerda
+FELIX_FRAME: .word 0# Contador global de frames para controle de animação
+
+# Variáveis do motor de física vertical
+VEL_Y:       .word 0# Velocidade vertical (valores positivos descem, negativos sobem)
+ESTA_NO_AR:  .word 1# Booleano: 1 se estiver caindo/pulando, 0 se estiver firme no chão
+
+# --- SISTEMA DE BLOCOS (MUNDO ABSOLUTO) ---
+# Define as plataformas do mapa. Formato: (X mínimo, X máximo, Y do topo, Y da base)
+                                          #(bmp + 12, bmp - 3, bmp + 2, bmp)  
+NUM_BLOCOS:   .word 4
+LISTA_BLOCOS:
+  #bmp  x_min, x_max, y_min, y_max
+    (0, 1403, 192, 326)
+    (184, 268, 176, 192)
+    (268, 373, 192, 255)
+    (373, 478, 176, 255)
+    (478, 773, 160, 255)
+    (773, 941, 176, 255)
+    (941, 1404, 192, 326)
+    (1383, 1425, 413, 572)
+    (1423, 1575, 441, 572)
+    (1575, 1885, 430, 572)
+
+
+    (1425, 1446, 0, 364)
+    (1447, 1466, 0, 348)
+    (1468, 1488, 0, 380)
+    (1489, 1508, 0, 348)
+    (1509, 1533, 0, 396)
+
+    
+    (1535, 1594, 0, 364)
+    (1598, 1674, 0, 348)
+    (1697, 1737, 300, 317) #1
+    (1739, 1821, 300, 349) #2
+    (1823, 1884, 300, 381) #3
+    (1885, 1948, 126, 429)
+
+    (1383, 1380, 327, 412)
+
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+###################################################################################
+# ==============================================================================================
+# SEÇÃO DE DADOS (.data)
+# ==============================================================================================
+.data
+
+# Inclusão dos arquivos binários das imagens (matrizes de pixels e dimensões)
+.include "imagens/felix.data"
+.include "imagens/fundo.data"
+.include "imagens/tile.data"
+.include "imagens/telainicial.data"
+.include "imagens/AndarPDireitaFelix.data"
+.include "imagens/AndarPEsquerdaFelix.data"
+.include "imagens/FelixOutroLado.data"
+.include "imagens/FelixOutroLadoRebaixado.data"
+.include "imagens/FelixRebaixado.data"
+
+# Trilha sonora organizada em blocos de 3 words: [Pitch/Nota, Duração em ms, Canal/Instrumento]
+notas: .word 9, 0, 0, 67, 1000, 0, 74, 1000, 0, 70, 1500, 0, 69, 500, 0, 67, 500, 0, 70, 500, 0, 69, 500, 0, 67, 500, 0, 66, 500, 0,
+
+# Posição atual e anterior do Felix na tela (armazenados como Half-Word, 16 bits cada: X, Y)
+CHAR_POS:     .half 30, 50
+OLD_CHAR_POS: .half 30, 50       
+
+# --- DIMENSÕES DO PERSONAGEM (CORPO) ---
+FELIX_LARGURA: .half 24            
+FELIX_ALTURA:  .half 36            
+
+# Posição de rolagem (Scroll) do cenário de fundo
+BG_POS:     .half 0, 0
+OLD_BG_POS: .half 0, 0
+
+# Limites máximos e mínimos para o movimento da câmera (X)
+BG_X_MIN:  .half 5000
+BG_X_MAX:  .half 5000
+
+# Limites máximos e mínimos para o Felix andar dentro da tela
+FELIX_X_MIN: .half 0
+FELIX_X_MAX: .half 304
+FELIX_Y_MIN: .half 0
+FELIX_Y_MAX: .half 224
+
+FELIX_DIR:   .word 1# Direção do olhar: 0 = Direita, 1 = Esquerda
+FELIX_FRAME: .word 0# Contador global de frames para controle de animação
+
+# Variáveis do motor de física vertical
+VEL_Y:       .word 0# Velocidade vertical (valores positivos descem, negativos sobem)
+ESTA_NO_AR:  .word 1# Booleano: 1 se estiver caindo/pulando, 0 se estiver firme no chão
+
+# --- SISTEMA DE BLOCOS (MUNDO ABSOLUTO) ---
+# Define as plataformas do mapa. Formato: (X mínimo, X máximo, Y do topo, Y da base)
+NUM_BLOCOS:   .word 10
+LISTA_BLOCOS:
+    .half 12, 1200, 194, 326
+    .half 196, 265, 178, 192
+    .half 280, 370, 194, 255
+    .half 385, 475, 178, 255
+    .half 490, 770, 162, 255
+    .half 785, 938, 178, 255
+    .half 953, 1401, 194, 326
+    .half 1395, 1422, 415, 572
+    .half 1435, 1572, 443, 572
+    .half 1587, 1882, 432, 572   
+
+
+
+
+
+
+
+NUM_ESCADAS: .word 1
+LISTA_ESCADAS:
+    # (1405, 1424, 193, 364)
+    .half 1417, 1421, 195, 364
