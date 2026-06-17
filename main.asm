@@ -144,7 +144,7 @@ MF1:
     lw  a1, 4(s5)
     li  a2, 0
     li  a3, 60
-    # ecall
+    ecall
     li  a7, 30
     ecall
     sw  a0, 8(s1)
