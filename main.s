@@ -23,11 +23,11 @@ main:
         li s0, 0                # Framebuffer atual = 0
         li s1, STATE_PLAYING    # Estado = gameplay
 
-        # call SETUP_PLAYER
+        call SETUP_PLAYER
 
 GAME_LOOP:
-        # call READ_INPUT
-        # call UPDATE_PLAYER
+        call READ_INPUT
+        call UPDATE_GAME
         call RENDER_FRAME
 
         
@@ -44,6 +44,16 @@ GAME_LOOP:
         ecall
 
         j GAME_LOOP
+
+UPDATE_GAME:
+        addi sp, sp, -4
+        sw   ra, 0(sp)
+
+        call UPDATE_PLAYER
+
+        lw   ra, 0(sp)
+        addi sp, sp, 4
+        ret
 
 RENDER_FRAME:
         addi sp, sp, -4
@@ -78,6 +88,8 @@ RENDER_FRAME:
 # Includes
 # ===========================================================================
 .include "engine/render.s"
-# .include "engine/input.asm"
+.include "engine/input.s"
+
+.include "entities/player.s"
 # .include "engine/physics.asm"
 # .include "entities/player.asm"
