@@ -36,9 +36,7 @@ PT_CR_OK:
     add t6, t6, t1
     add  t6, t6, t3
 
-    li   t0, 0xFF0
-    add  t0, t0, a3
-    slli t0, t0, 20
+    mv t0, a3
     add  t1, a1, t3
     li   t2, SCREEN_W
     mul  t2, a2, t2
@@ -72,7 +70,7 @@ PT_RET:
 # a0 = endereco da matriz visual do mapa
 # a1 = numero de colunas do mapa
 # a2 = numero de linhas do mapa
-# a3 = framebuffer (0 ou 1)
+# a3 = endereço do framebuffer (0xFF000000 ou 0xFF100000)
 RENDER_MAPA:
     addi sp, sp, -36
     sw   ra,  0(sp)

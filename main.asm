@@ -5,8 +5,9 @@
 
 .include "imagens/MAPA1_defs.s"
 .include "imagens/MAPA1_colisao.s"
-.include "imagens/MAPA1_visual.s"
 .include "imagens/MAPA1_entidades.s"
+.include "imagens/MAPA1_visual.s"
+.include "imagens/MAPA1_tileset_offsets.s"
 .include "imagens/megaman_direita.data"
 .include "imagens/tileset.data"
 .include "imagens/tela_inicial1.data"
@@ -95,10 +96,16 @@ CHECK_KEY_INPUT:
     lw  t2, 4(s10)
     sw  t2, 12(s10)
 
-    li  a3, 0
-    call PRINT_MAPA
-    li  a3, 1
-    call PRINT_MAPA
+    la  a0, MAPA1_VISUAL
+    li  a1, MAPA1_MAP_COLS
+    li  a2, MAPA1_MAP_ROWS
+    li  a3, 0xFF000000
+    call RENDER_MAPA
+    la  a0, MAPA1_VISUAL
+    li  a1, MAPA1_MAP_COLS
+    li  a2, MAPA1_MAP_ROWS
+    li  a3, 0xFF100000
+    call RENDER_MAPA
 
 GAME_LOOP:
     li  a7, 30
@@ -173,9 +180,14 @@ MF0:
     li   t0, 0xFF200604
     sw   s0, 0(t0)
 
-    mv   a3, s0
-    xori a3, a3, 1
-    call PRINT_MAPA
+    la   a0, MAPA1_VISUAL
+    li   a1, MAPA1_MAP_COLS
+    li   a2, MAPA1_MAP_ROWS
+    xori t0, s0, 1
+    li   a3, 0xFF0
+    add  a3, a3, t0
+    slli a3, a3, 20
+    call RENDER_MAPA
 
     li  a7, 30
     ecall
@@ -747,125 +759,4 @@ TILE_VAZIO:
     li  a0, 0
     ret
 
-PRINT_TILE:
-    li   t0, 12
-    rem  t1, a0, t0
-    div  t2, a0, t0
-
-    li   t3, 0
-    bgez a1, PT_CL_OK
-    sub  t3, zero, a1
-PT_CL_OK:
-    li   t4, 0
-    addi t5, a1, 16
-    li   t6, 320
-    ble  t5, t6, PT_CR_OK
-    sub  t4, t5, t6
-PT_CR_OK:
-    li   t5, 16
-    sub  t5, t5, t3
-    sub  t5, t5, t4
-    blez t5, PT_RET
-
-    la   t6, tileset
-    addi t6, t6, 8
-    li   t0, 3072
-    mul  t0, t2, t0
-    add  t6, t6, t0
-    slli t0, t1, 4
-    add  t6, t6, t0
-    add  t6, t6, t3
-
-    li   t0, 0xFF0
-    add  t0, t0, a3
-    slli t0, t0, 20
-    add  t1, a1, t3
-    li   t2, 320
-    mul  t2, a2, t2
-    add  t1, t1, t2
-    add  t1, t0, t1
-
-    li   t4, 0
-PT_ROW:
-    mv   t2, t6
-    mv   t3, t1
-    mv   t0, t5
-PT_PIX:
-    lbu  a0, 0(t2)
-    sb   a0, 0(t3)
-    addi t2, t2, 1
-    addi t3, t3, 1
-    addi t0, t0, -1
-    bnez t0, PT_PIX
-    li   t0, 192
-    add  t6, t6, t0
-    li   t0, 320
-    add  t1, t1, t0
-    addi t4, t4, 1
-    li   t0, 16
-    blt  t4, t0, PT_ROW
-PT_RET:
-    ret
-
-PRINT_MAPA:
-    addi sp, sp, -28
-    sw   ra,  0(sp)
-    sw   s1,  4(sp)
-    sw   s2,  8(sp)
-    sw   s3, 12(sp)
-    sw   s4, 16(sp)
-    sw   s5, 20(sp)
-    sw   s6, 24(sp)
-
-    la   t0, BG_POS
-    lh   s1, 0(t0)
-    srli s2, s1, 4
-    andi s3, s1, 15
-    mv   s4, a3
-
-    li   s5, 0
-RM_ROW:
-    li   s6, 0
-RM_COL:
-    add  t0, s2, s6
-    li   t1, MAPA1_MAP_COLS
-    bge  t0, t1, RM_NEXT_ROW
-
-    slli t2, s6, 4
-    sub  t2, t2, s3
-    li   t3, 320
-    bge  t2, t3, RM_NEXT_ROW
-
-    slli t4, s5, 4
-
-    li   t5, MAPA1_MAP_COLS
-    mul  t5, s5, t5
-    add  t5, t5, t0
-    la   t6, MAPA1_VISUAL
-    add  t6, t6, t5
-    lbu  t5, 0(t6)
-
-    mv   a0, t5
-    mv   a1, t2
-    mv   a2, t4
-    mv   a3, s4
-    call PRINT_TILE
-
-    addi s6, s6, 1
-    li   t0, 21
-    blt  s6, t0, RM_COL
-
-RM_NEXT_ROW:
-    addi s5, s5, 1
-    li   t0, MAPA1_MAP_ROWS
-    blt  s5, t0, RM_ROW
-
-    lw   ra,  0(sp)
-    lw   s1,  4(sp)
-    lw   s2,  8(sp)
-    lw   s3, 12(sp)
-    lw   s4, 16(sp)
-    lw   s5, 20(sp)
-    lw   s6, 24(sp)
-    addi sp, sp, 28
-    ret
+.include "engine/render.s"
