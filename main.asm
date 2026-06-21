@@ -3,28 +3,16 @@
 .include "consts.s"
 
 
-.include "imagens/MAPA1_defs.s"
-.include "imagens/MAPA1_colisao.s"
-.include "imagens/MAPA1_entidades.s"
-.include "imagens/MAPA1_visual.s"
-.include "imagens/MAPA1_tileset_offsets.s"
-.include "imagens/megaman_direita.data"
-.include "imagens/tileset.data"
-.include "imagens/tela_inicial1.data"
-.include "imagens/tela_inicial2.data"
-.include "imagens/megaman_correndo_direita1.data"
-.include "imagens/megaman_correndo_direita2.data"
-.include "imagens/megaman_correndo_direita3.data"
-.include "imagens/megaman_correndo_esquerda1.data"
-.include "imagens/megaman_correndo_esquerda2.data"
-.include "imagens/megaman_correndo_esquerda3.data"
-.include "imagens/megaman_esquerda.data"
-.include "imagens/megaman_piscando_esquerda.data"
-.include "imagens/megaman_piscando_direita.data"
-.include "imagens/megaman_pulando_direita.data"
-.include "imagens/megaman_pulando_esquerda.data"
-.include "imagens/megaman_subindo_escada_1.data"
-.include "imagens/megaman_subindo_escada_2.data"
+.include "assets/maps/MAPA1_defs.s"
+.include "assets/maps/MAPA1_entidades.s"
+.include "assets/maps/MAPA1_colisao.s"
+.include "assets/maps/MAPA1_visual.s"
+.include "assets/maps/MAPA1_tileset_offsets.s"
+.include "assets/tileset/tileset.data"
+.include "assets/maps/tela_inicial1.data"
+.include "assets/maps/tela_inicial2.data"
+.include "assets/sprites/player/megaman_frames.data"
+
 
 notas: .word 9, 0, 0, 67, 1000, 0, 74, 1000, 0, 70, 1500, 0, 69, 500, 0, 67, 500, 0, 70, 500, 0, 69, 500, 0, 67, 500, 0, 66, 500, 0,
 
@@ -708,32 +696,6 @@ ESCADA_PARADO:
     la  a0, megaman_subindo_escada_1
     ret
 
-PRINT:
-    li  t0, 0xFF0
-    add t0, t0, a3
-    slli t0, t0, 20
-    add t0, t0, a1
-    li  t1, 320
-    mul t1, t1, a2
-    add t0, t0, t1
-    addi t1, a0, 8
-    mv  t2, zero
-    mv  t3, zero
-    lw  t4, 0(a0)
-    lw  t5, 4(a0)
-PRINT_LINHA:
-    lw  t6, 0(t1)
-    sw  t6, 0(t0)
-    addi t0, t0, 4
-    addi t1, t1, 4
-    addi t3, t3, 4
-    blt  t3, t4, PRINT_LINHA
-    addi t0, t0, 320
-    sub  t0, t0, t4
-    mv  t3, zero
-    addi t2, t2, 1
-    blt  t2, t5, PRINT_LINHA
-    ret
 
 CHECA_TILE:
     la  t0, BG_POS
