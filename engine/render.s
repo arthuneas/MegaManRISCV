@@ -75,19 +75,34 @@ RENDER_ENTITY:
 RENDER_TILE:
 
     li   t3, 0
-    bgez a1, PT_CL_OK
+    bgez a1, _RENDER_TILE_CL_OK
     sub  t3, zero, a1
-PT_CL_OK:
+_RENDER_TILE_CL_OK:
     li   t4, 0
     addi t5, a1, TILE_W
     li   t6, SCREEN_W
-    ble  t5, t6, PT_CR_OK
+    ble  t5, t6, _RENDER_TILE_CR_OK
     sub  t4, t5, t6
-PT_CR_OK:
+_RENDER_TILE_CR_OK:
     li   t5, TILE_W
     sub  t5, t5, t3
     sub  t5, t5, t4
-    blez t5, PT_RET
+    blez t5, _RENDER_TILE_RET
+
+    li   a4, 0
+    bgez a2, _RENDER_TILE_CT_OK
+    sub  a4, zero, a2
+_RENDER_TILE_CT_OK:
+    li   a5, 0
+    addi t0, a2, TILE_H
+    li   t1, SCREEN_H
+    ble  t0, t1, _RENDER_TILE_CB_OK
+    sub  a5, t0, t1
+_RENDER_TILE_CB_OK:
+    li   a6, TILE_H
+    sub  a6, a6, a4
+    sub  a6, a6, a5
+    blez a6, _RENDER_TILE_RET
 
     la   t6, tileset
     addi t6, t6, IMG_HEADER_BYTES
@@ -99,34 +114,37 @@ PT_CR_OK:
     lw   t1, 0(t1)  # offset em bytes no tileset
 
     add t6, t6, t1
+    li  t0, TILESET_W
+    mul t1, a4, t0
+    add t6, t6, t1
     add  t6, t6, t3
 
     add  t1, a1, t3
-    li   t2, SCREEN_W
-    mul  t2, a2, t2
+    add  t2, a2, a4
+    li   t0, SCREEN_W
+    mul  t2, t2, t0
     add  t1, t1, t2
     add  t1, a3, t1
 
     li   t4, 0
     li   a4, TILESET_W
     li   a5, SCREEN_W
-    li   a6, TILE_H
-PT_ROW:
+_RENDER_TILE_ROW:
     mv   t2, t6
     mv   t3, t1
     mv   t0, t5
-PT_PIX:
+_RENDER_TILE_PIXEL:
     lbu  a0, 0(t2)
     sb   a0, 0(t3)
     addi t2, t2, 1
     addi t3, t3, 1
     addi t0, t0, -1
-    bnez t0, PT_PIX
+    bnez t0, _RENDER_TILE_PIXEL
     add  t6, t6, a4
     add  t1, t1, a5
     addi t4, t4, 1
-    blt  t4, a6, PT_ROW
-PT_RET:
+    blt  t4, a6, _RENDER_TILE_ROW
+_RENDER_TILE_RET:
     ret
 
 
@@ -156,25 +174,29 @@ RENDER_MAPA:
     mv   s4, a3          # framebuffer
 
     la   t0, BG_POS
-    lh   t0, 0(t0)
-    srli s5, t0, TILE_W_SHIFT  # primeira coluna visivel
-    andi s6, t0, TILE_OFFSET_MASK # scroll parcial dentro do tile
+    lh   t1, 0(t0)
+    srli s5, t1, TILE_W_SHIFT
+    andi s6, t1, TILE_OFFSET_MASK
+    lh   t1, 2(t0)
+    srli s7, t1, TILE_H_SHIFT
+    andi t2, t1, TILE_OFFSET_MASK
 
-    li   s7, 0
-    li   s11, 0
-RM_ROW:
+    sub  s11, zero, t2
+_RENDER_MAPA_ROW:
+    bge  s7, s3, _RENDER_MAPA_DONE
+
     li   s8, 0
     sub  s10, zero, s6
     mul  t0, s7, s2
     add  t0, t0, s5
     add  s9, s1, t0
-RM_COL:
+_RENDER_MAPA_COL:
     add  t0, s5, s8
-    bge  t0, s2, RM_NEXT_ROW
+    bge  t0, s2, _RENDER_MAPA_NEXT_ROW
 
     mv   t2, s10
     li   t3, SCREEN_W
-    bge  t2, t3, RM_NEXT_ROW
+    bge  t2, t3, _RENDER_MAPA_NEXT_ROW
 
     mv   t4, s11
 
@@ -190,13 +212,15 @@ RM_COL:
     addi s10, s10, TILE_W
     addi s8, s8, 1
     li   t0, MAP_VISIBLE_COLS
-    blt  s8, t0, RM_COL
+    blt  s8, t0, _RENDER_MAPA_COL
 
-RM_NEXT_ROW:
+_RENDER_MAPA_NEXT_ROW:
     addi s7, s7, 1
     addi s11, s11, TILE_H
-    blt  s7, s3, RM_ROW
+    li   t0, SCREEN_H
+    blt  s11, t0, _RENDER_MAPA_ROW
 
+_RENDER_MAPA_DONE:
     lw   ra,  0(sp)
     lw   s1,  4(sp)
     lw   s2,  8(sp)

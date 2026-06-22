@@ -49,10 +49,12 @@ KNOCKBACK_VEL_X:         .word 0
 .eqv TILESET_COLS 12
 .eqv TILESET_W 192
 .eqv SCREEN_W 320
+.eqv SCREEN_H 240
 .eqv IMG_HEADER_BYTES 8
 .eqv MAP_VISIBLE_COLS 21
+.eqv MAP_VISIBLE_ROWS 16
 
 .eqv BG_X_MIN  0
 .eqv BG_X_MAX  192
 .eqv BG_Y_MIN  0
-.eqv BG_Y_MAX  0
+.eqv BG_Y_MAX  240

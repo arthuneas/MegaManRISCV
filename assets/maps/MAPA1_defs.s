@@ -1,9 +1,9 @@
-# Gerado automaticamente pelo RITMO em 2026-06-21 18:34
-# Mapa: 32 colunas x 15 linhas, tile 16x16 pixels
+# Gerado automaticamente pelo RITMO em 2026-06-22 12:44
+# Mapa: 32 colunas x 30 linhas, tile 16x16 pixels
 # Prefixo: MAPA1
 
 .eqv MAPA1_MAP_COLS  32
-.eqv MAPA1_MAP_ROWS  15
+.eqv MAPA1_MAP_ROWS  30
 .eqv MAPA1_TILE_W    16
 .eqv MAPA1_TILE_H    16
 
