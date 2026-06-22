@@ -2,15 +2,43 @@
 
 PLAYER_POSITION:     .half 0, 0
 PLAYER_OLD_POSITION: .half 16, 168
+PLAYER_DIRECTION:    .word 0
+PLAYER_ANIMATION_FRAME: .word 0
+PLAYER_IS_MOVING:    .word 0
+PLAYER_VEL_Y:        .word 0
+PLAYER_IS_IN_AIR:    .word 0
+PLAYER_IS_ON_LADDER: .word 0
+PLAYER_STATE:        .word PLAYER_STATE_IDLE
 
 .text
 
+# PLAYER_SETUP
+# Inicializa estado e posicao inicial do player.
 PLAYER_SETUP:
     addi sp, sp, -4
     sw   ra, 0(sp)
 
     la t0, PLAYER_STATE
-    sw   zero, 0(t0)
+    li t1, PLAYER_STATE_IDLE
+    sw t1, 0(t0)
+
+    la t0, PLAYER_DIRECTION
+    sw zero, 0(t0)
+
+    la t0, PLAYER_ANIMATION_FRAME
+    sw zero, 0(t0)
+
+    la t0, PLAYER_IS_MOVING
+    sw zero, 0(t0)
+
+    la t0, PLAYER_VEL_Y
+    sw zero, 0(t0)
+
+    la t0, PLAYER_IS_IN_AIR
+    sw zero, 0(t0)
+
+    la t0, PLAYER_IS_ON_LADDER
+    sw zero, 0(t0)
 
     la a0, MAPA1_PLAYER
     la a1, PLAYER_POSITION
@@ -24,9 +52,14 @@ PLAYER_SETUP:
     addi sp, sp, 4
     ret
 
+# PLAYER_UPDATE
+# Atualiza flags e input do player.
 PLAYER_UPDATE:
     addi sp, sp, -4
     sw   ra, 0(sp)
+
+    la t0, PLAYER_IS_MOVING
+    sw zero, 0(t0)
 
     call PLAYER_HANDLE_INPUT
 
@@ -34,6 +67,8 @@ PLAYER_UPDATE:
     addi sp, sp, 4
     ret
 
+# PLAYER_RENDER
+# a3 = endereco base do framebuffer
 PLAYER_RENDER:
     addi sp, sp, -8
     sw   ra, 0(sp)
@@ -57,6 +92,8 @@ PLAYER_RENDER:
     addi sp, sp, 8
     ret
 
+# PLAYER_HANDLE_INPUT
+# Le INPUT_CURRENT/INPUT_PRESSED e chama a acao do player.
 PLAYER_HANDLE_INPUT:
 
     la   t0, INPUT_CURRENT
@@ -93,6 +130,13 @@ PLAYER_JUMP:
 
 
 PLAYER_MOVE_RIGHT:
+    li t1, 1
+    la t0, PLAYER_IS_MOVING
+    sw t1, 0(t0)
+
+    li t1, 0
+    la t0, PLAYER_DIRECTION
+    sw t1, 0(t0)
 
     la t0, PLAYER_POSITION
     lhu t1, 0(t0)
@@ -102,6 +146,14 @@ PLAYER_MOVE_RIGHT:
     ret
 
 PLAYER_MOVE_LEFT:
+    li t1, 1
+    la t0, PLAYER_IS_MOVING
+    sw t1, 0(t0)
+
+    li t1, 1
+    la t0, PLAYER_DIRECTION
+    sw t1, 0(t0)
+
     la t0, PLAYER_POSITION
     lhu t1, 0(t0)
     addi t1, t1, -4

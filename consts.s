@@ -11,8 +11,6 @@
 .eqv PLAYER_STATE_ATIRA_ESCADA  6
 .eqv PLAYER_STATE_KNOCKBACK     7
 
-PLAYER_STATE:          .word PLAYER_STATE_IDLE
-
 ESTA_INVULNERAVEL:      .word 0
 INVULNERAVEL_TIMER:      .word 0
 INVULNERAVEL_DURACAO:    .word 2000   # 2s piscando após o dano
