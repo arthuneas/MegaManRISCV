@@ -92,6 +92,7 @@ WAIT_FRAME:
 # ===========================================================================
 .include "engine/render.s"
 .include "engine/input.s"
+.include "engine/physics.s"
 .include "utils.s"
 
 .include "entities/player.s"
