@@ -53,7 +53,7 @@ PLAYER_SETUP:
     ret
 
 # PLAYER_UPDATE
-# Atualiza flags e input do player.
+# Atualiza input, fisica e estado do player.
 PLAYER_UPDATE:
     addi sp, sp, -4
     sw   ra, 0(sp)
@@ -63,6 +63,7 @@ PLAYER_UPDATE:
 
     call PLAYER_READ_INPUT
     call PLAYER_APPLY_VERTICAL_PHYSICS
+    call PLAYER_UPDATE_STATE
 
     lw   ra, 0(sp)
     addi sp, sp, 4
@@ -148,6 +149,66 @@ PLAYER_START_JUMP:
     sw t1, 0(t0)
 
 _PLAYER_START_JUMP_DONE:
+    ret
+
+# PLAYER_SET_STATE
+# a0 = novo estado do player.
+PLAYER_SET_STATE:
+    la t0, PLAYER_STATE
+    lw t1, 0(t0)
+    beq t1, a0, _PLAYER_SET_STATE_DONE
+
+    sw a0, 0(t0)
+    la t0, PLAYER_ANIMATION_FRAME
+    sw zero, 0(t0)
+
+_PLAYER_SET_STATE_DONE:
+    ret
+
+# PLAYER_UPDATE_STATE
+# Define estado usando flags finais do frame.
+PLAYER_UPDATE_STATE:
+    addi sp, sp, -4
+    sw   ra, 0(sp)
+
+    la t0, PLAYER_STATE
+    lw t1, 0(t0)
+    li t2, PLAYER_STATE_KNOCKBACK
+    beq t1, t2, _PLAYER_UPDATE_STATE_DONE
+
+    la t0, PLAYER_IS_ON_LADDER
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_UPDATE_STATE_LADDER
+
+    la t0, PLAYER_IS_IN_AIR
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_UPDATE_STATE_AIR
+
+    la t0, PLAYER_IS_MOVING
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_UPDATE_STATE_MOVING
+
+    li a0, PLAYER_STATE_IDLE
+    call PLAYER_SET_STATE
+    j _PLAYER_UPDATE_STATE_DONE
+
+_PLAYER_UPDATE_STATE_LADDER:
+    li a0, PLAYER_STATE_NA_ESCADA
+    call PLAYER_SET_STATE
+    j _PLAYER_UPDATE_STATE_DONE
+
+_PLAYER_UPDATE_STATE_AIR:
+    li a0, PLAYER_STATE_NO_AR
+    call PLAYER_SET_STATE
+    j _PLAYER_UPDATE_STATE_DONE
+
+_PLAYER_UPDATE_STATE_MOVING:
+    li a0, PLAYER_STATE_ANDANDO
+    call PLAYER_SET_STATE
+
+_PLAYER_UPDATE_STATE_DONE:
+    lw   ra, 0(sp)
+    addi sp, sp, 4
     ret
 
 # PLAYER_APPLY_VERTICAL_PHYSICS
