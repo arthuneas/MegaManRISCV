@@ -20,6 +20,5 @@
 #   - Animação de dano e morte
 #   - Integração com o estado do jogador (INPUT_FLAGS e estado de movimento)
 # ===========================================================================
-.globl UPDATE_ANIMATION
 UPDATE_ANIMATION:
         ret                 # Stub - será implementado na etapa 2

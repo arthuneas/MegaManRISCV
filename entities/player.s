@@ -7,9 +7,6 @@ PLAYER_POSITION:     .half 0, 0
 PLAYER_OLD_POSITION: .half 16, 168
 
 .text
-.globl PLAYER_SETUP
-.globl PLAYER_UPDATE
-.globl PLAYER_RENDER
 
 PLAYER_SETUP:
     addi sp, sp, -4

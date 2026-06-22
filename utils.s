@@ -3,10 +3,6 @@
 # ===========================================================================
 
 .text
-.globl MAP_GRID_TO_WORLD_POSITION
-.globl WORLD_TO_SCREEN_POSITION
-.globl MAP_GRID_TO_SCREEN_POSITION
-.globl LOAD_ENTITY_POSITION
 
 # LOAD_ENTITY_POSITION
 # Guarda a posição inicial de uma entidade no endereço de destino

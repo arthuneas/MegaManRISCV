@@ -9,8 +9,6 @@
 .eqv PLAYER_SPEED_NEG -2
 
 .data
-.globl PLAYER_X
-.globl PLAYER_Y
 PLAYER_X:           .half 150       # X
 PLAYER_Y:           .half 200       # Y
 
@@ -21,7 +19,6 @@ PLAYER_SPRITE_IDLE:
 
 .text
 
-.globl SETUP_PLAYER
 SETUP_PLAYER:
         la t0, PLAYER_X
         li t1, 150
@@ -48,7 +45,6 @@ FILL_SPRITE:
         ret
 
 
-.globl UPDATE_PLAYER
 UPDATE_PLAYER:
         addi sp, sp, -8
         sw ra, 0(sp)
@@ -103,7 +99,6 @@ STORE_POS:
         addi sp, sp, 8
         ret
 
-.globl RENDER_PLAYER
 RENDER_PLAYER:
         addi sp, sp, -4
         sw ra, 0(sp)

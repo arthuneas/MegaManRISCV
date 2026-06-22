@@ -19,7 +19,7 @@ BG_POS:     .half 0, 0
 OLD_BG_POS: .half 0, 0
 
 .text
-.globl main
+
 main:
         call PLAYER_SETUP
 

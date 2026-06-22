@@ -47,12 +47,6 @@
 # Dados
 # ---------------------------------------------------------------------------
 .data
-.globl INPUT_CURRENT
-.globl INPUT_FLAGS
-.globl INPUT_PREVIOUS
-.globl INPUT_PRESSED
-.globl INPUT_RELEASED
-
 INPUT_FLAGS:
 INPUT_CURRENT:       .word 0    # Teclas consideradas pressionadas neste frame
 INPUT_PREVIOUS:      .word 0    # Estado do frame anterior
@@ -73,7 +67,6 @@ INPUT_RELEASED:      .word 0    # Bits que desligaram neste frame
 # Registradores usados: t0-t6
 # Nota: função leaf, não precisa salvar ra na pilha
 # ===========================================================================
-.globl READ_INPUT
 READ_INPUT:
         # INPUT_PREVIOUS = INPUT_CURRENT
         la t0,INPUT_CURRENT
