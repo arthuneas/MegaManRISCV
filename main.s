@@ -1,5 +1,5 @@
 # ===========================================================================
-# main.asm - Ponto de Entrada do Jogo Base
+# main.s - Ponto de entrada do jogo
 # ===========================================================================
 .data
 
@@ -11,9 +11,6 @@
 .include "assets/maps/MAPA1_colisao.s"
 .include "assets/maps/MAPA1_visual.s"
 .include "assets/sprites/player/megaman_frames.data"
-
-
-.eqv STATE_PLAYING   2
 
 BG_POS:     .half 0, 0
 OLD_BG_POS: .half 0, 0
@@ -103,5 +100,3 @@ WAIT_FRAME:
 .include "utils.s"
 
 .include "entities/player.s"
-# .include "engine/physics.asm"
-# .include "entities/player.asm"

@@ -46,7 +46,7 @@ _PHYSICS_IS_SOLID_TILE_TRUE:
     ret
 
 # PHYSICS_APPLY_GRAVITY
-# Stub reservado para etapa de gravidade.
+# Reservada; a gravidade atual fica na colisao vertical.
 PHYSICS_APPLY_GRAVITY:
     ret
 

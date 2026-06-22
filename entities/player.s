@@ -58,6 +58,8 @@ PLAYER_UPDATE:
     addi sp, sp, -4
     sw   ra, 0(sp)
 
+    call PLAYER_SAVE_OLD_POSITION
+
     la t0, PLAYER_IS_MOVING
     sw zero, 0(t0)
 
@@ -68,6 +70,17 @@ PLAYER_UPDATE:
 
     lw   ra, 0(sp)
     addi sp, sp, 4
+    ret
+
+# PLAYER_SAVE_OLD_POSITION
+# Copia PLAYER_POSITION para PLAYER_OLD_POSITION.
+PLAYER_SAVE_OLD_POSITION:
+    la t0, PLAYER_POSITION
+    la t1, PLAYER_OLD_POSITION
+    lh t2, 0(t0)
+    sh t2, 0(t1)
+    lh t2, 2(t0)
+    sh t2, 2(t1)
     ret
 
 # PLAYER_RENDER
