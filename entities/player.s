@@ -62,6 +62,7 @@ PLAYER_UPDATE:
     sw zero, 0(t0)
 
     call PLAYER_READ_INPUT
+    call PLAYER_APPLY_VERTICAL_PHYSICS
 
     lw   ra, 0(sp)
     addi sp, sp, 4
@@ -125,15 +126,77 @@ _PLAYER_READ_INPUT_DONE:
 # PLAYER_JUMP
 # Processa input de pulo pressionado neste frame.
 PLAYER_JUMP:
-    li a7, 11
-    li a0, 'J'
-    ecall
-
-    li a7, 11
-    li a0, 10      # '\n'
-    ecall
-
+    addi sp, sp, -4
+    sw   ra, 0(sp)
+    call PLAYER_START_JUMP
+    lw   ra, 0(sp)
+    addi sp, sp, 4
     j _PLAYER_READ_INPUT_CONTINUE
+
+# PLAYER_START_JUMP
+# Inicia pulo se o player nao estiver no ar.
+PLAYER_START_JUMP:
+    la t0, PLAYER_IS_IN_AIR
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_START_JUMP_DONE
+
+    li t1, 1
+    sw t1, 0(t0)
+
+    li t1, -8
+    la t0, PLAYER_VEL_Y
+    sw t1, 0(t0)
+
+_PLAYER_START_JUMP_DONE:
+    ret
+
+# PLAYER_APPLY_VERTICAL_PHYSICS
+# Aplica velocidade vertical, gravidade e limite inferior.
+PLAYER_APPLY_VERTICAL_PHYSICS:
+    la t0, PLAYER_POSITION
+    lh t1, 2(t0)
+
+    la t2, PLAYER_VEL_Y
+    lw t3, 0(t2)
+    add t1, t1, t3
+
+    bltz t1, _PLAYER_APPLY_VERTICAL_PHYSICS_TOP
+    j _PLAYER_APPLY_VERTICAL_PHYSICS_BOTTOM
+
+_PLAYER_APPLY_VERTICAL_PHYSICS_TOP:
+    li t1, PLAYER_Y_MIN
+    sw zero, 0(t2)
+    j _PLAYER_APPLY_VERTICAL_PHYSICS_SAVE
+
+_PLAYER_APPLY_VERTICAL_PHYSICS_BOTTOM:
+    li t4, PLAYER_Y_MAX
+    ble t1, t4, _PLAYER_APPLY_VERTICAL_PHYSICS_GRAVITY
+
+    mv t1, t4
+    sw zero, 0(t2)
+    la t5, PLAYER_IS_IN_AIR
+    sw zero, 0(t5)
+    j _PLAYER_APPLY_VERTICAL_PHYSICS_SAVE
+
+_PLAYER_APPLY_VERTICAL_PHYSICS_GRAVITY:
+    addi t3, t3, 1
+    li t4, 6
+    ble t3, t4, _PLAYER_APPLY_VERTICAL_PHYSICS_STORE_VEL
+    mv t3, t4
+
+_PLAYER_APPLY_VERTICAL_PHYSICS_STORE_VEL:
+    sw t3, 0(t2)
+    bnez t3, _PLAYER_APPLY_VERTICAL_PHYSICS_SET_AIR
+    j _PLAYER_APPLY_VERTICAL_PHYSICS_SAVE
+
+_PLAYER_APPLY_VERTICAL_PHYSICS_SET_AIR:
+    la t5, PLAYER_IS_IN_AIR
+    li t6, 1
+    sw t6, 0(t5)
+
+_PLAYER_APPLY_VERTICAL_PHYSICS_SAVE:
+    sh t1, 2(t0)
+    ret
 
 
 # PLAYER_MOVE_RIGHT
