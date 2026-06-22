@@ -3,18 +3,34 @@
 msg1: 	.string "aqui!\n"
 
 
-.text
-.globl SETUP_PLAYER
-.globl UPDATE_PLAYER
-.globl RENDER_PLAYER
+PLAYER_POSITION:     .half 0, 0
+PLAYER_OLD_POSITION: .half 16, 168
 
-SETUP_PLAYER:
+.text
+.globl PLAYER_SETUP
+.globl PLAYER_UPDATE
+.globl PLAYER_RENDER
+
+PLAYER_SETUP:
+    addi sp, sp, -4
+    sw   ra, 0(sp)
 
     la t0, PLAYER_STATE
     sw   zero, 0(t0)
+
+    la a0, MAPA1_PLAYER
+    la a1, PLAYER_POSITION
+    call LOAD_ENTITY_POSITION
+
+    la a0, MAPA1_PLAYER
+    la a1, PLAYER_OLD_POSITION
+    call LOAD_ENTITY_POSITION
+
+    lw   ra, 0(sp)
+    addi sp, sp, 4
     ret
 
-UPDATE_PLAYER:
+PLAYER_UPDATE:
     addi sp, sp, -4
     sw   ra, 0(sp)
 
@@ -24,7 +40,26 @@ UPDATE_PLAYER:
     addi sp, sp, 4
     ret
 
-RENDER_PLAYER:
+PLAYER_RENDER:
+    addi sp, sp, -8
+    sw   ra, 0(sp)
+    sw   a3, 4(sp)
+
+    la t0, PLAYER_POSITION
+    lh a0, 0(t0)
+    lh a1, 2(t0)
+    call WORLD_TO_SCREEN_POSITION
+
+    mv t0, a0
+    mv t1, a1
+    la a0, megaman_direita
+    mv a1, t0
+    mv a2, t1
+    lw a3, 4(sp)
+    call PRINT
+
+    lw   ra, 0(sp)
+    addi sp, sp, 8
     ret
 
 PLAYER_HANDLE_INPUT:
@@ -40,7 +75,7 @@ PLAYER_HANDLE_INPUT:
     andi t5, t4, INPUT_JUMP
     bnez t5, PLAYER_JUMP
 
-CONTINUE_HANDLE_INPUT:
+_PLAYER_HANDLE_INPUT_CONTINUE:
 
     li   t3, INPUT_LEFT
     beq  t2, t3, PLAYER_MOVE_LEFT
@@ -59,7 +94,7 @@ PLAYER_JUMP:
     li a0, 10      # '\n'
     ecall
 
-    j CONTINUE_HANDLE_INPUT
+    j _PLAYER_HANDLE_INPUT_CONTINUE
 
 
 PLAYER_MOVE_RIGHT:

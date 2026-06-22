@@ -2,12 +2,14 @@
 # engine/render.s - Motor de Renderização Base
 # ===========================================================================
 
-
-# Renderiza um sprite na tela, no framebuffer atual
+# PRINT: desenha imagem em (x, y)
+# a0 = imagem (.word largura, altura; depois pixels)
+# a1 = x na tela
+# a2 = y na tela
+# a3 = endereco base do framebuffer
+# Obs: nao faz clipping nem transparencia; usa t0-t6.
 PRINT:
-    li  t0, 0xFF0
-    add t0, t0, a3
-    slli t0, t0, 20
+    mv  t0, a3
     add t0, t0, a1
     li  t1, 320
     mul t1, t1, a2

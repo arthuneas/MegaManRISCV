@@ -2,13 +2,13 @@
 
 .include "consts.s"
 
+.include "assets/tileset/tileset.data"
 
 .include "assets/maps/MAPA1_defs.s"
+.include "assets/maps/MAPA1_tileset_offsets.s"
 .include "assets/maps/MAPA1_entidades.s"
 .include "assets/maps/MAPA1_colisao.s"
 .include "assets/maps/MAPA1_visual.s"
-.include "assets/maps/MAPA1_tileset_offsets.s"
-.include "assets/tileset/tileset.data"
 .include "assets/maps/tela_inicial1.data"
 .include "assets/maps/tela_inicial2.data"
 .include "assets/sprites/player/megaman_frames.data"
@@ -41,7 +41,7 @@ SETUP:
     la  a0, tela_inicial1
     li  a1, 0
     li  a2, 0
-    li  a3, 0
+    li  a3, 0xFF000000
     call PRINT
 
     li  s11, 0
@@ -66,7 +66,7 @@ MOSTRA_TELA1:
     la  a0, tela_inicial1
     li  a1, 0
     li  a2, 0
-    li  a3, 0
+    li  a3, 0xFF000000
     call PRINT
     j CHECK_KEY_INPUT
 
@@ -74,7 +74,7 @@ MOSTRA_TELA2:
     la  a0, tela_inicial2
     li  a1, 0
     li  a2, 0
-    li  a3, 0
+    li  a3, 0xFF000000
     call PRINT
 
 CHECK_KEY_INPUT:
@@ -162,7 +162,9 @@ MF0:
     la  t0, CHAR_POS
     lh  a1, 0(t0)
     lh  a2, 2(t0)
-    mv  a3, s0
+    li  t0, 0xFF0
+    add t0, t0, s0
+    slli a3, t0, 20
     call PRINT
 
     li   t0, 0xFF200604
