@@ -61,7 +61,7 @@ PLAYER_UPDATE:
     la t0, PLAYER_IS_MOVING
     sw zero, 0(t0)
 
-    call PLAYER_HANDLE_INPUT
+    call PLAYER_READ_INPUT
 
     lw   ra, 0(sp)
     addi sp, sp, 4
@@ -92,9 +92,9 @@ PLAYER_RENDER:
     addi sp, sp, 8
     ret
 
-# PLAYER_HANDLE_INPUT
+# PLAYER_READ_INPUT
 # Le INPUT_CURRENT/INPUT_PRESSED e chama a acao do player.
-PLAYER_HANDLE_INPUT:
+PLAYER_READ_INPUT:
 
     la   t0, INPUT_CURRENT
     lw   t1, 0(t0)
@@ -107,7 +107,11 @@ PLAYER_HANDLE_INPUT:
     andi t5, t4, INPUT_JUMP
     bnez t5, PLAYER_JUMP
 
-_PLAYER_HANDLE_INPUT_CONTINUE:
+_PLAYER_READ_INPUT_CONTINUE:
+
+    li   t3, INPUT_LEFT
+    ori  t3, t3, INPUT_RIGHT
+    beq  t2, t3, _PLAYER_READ_INPUT_DONE
 
     li   t3, INPUT_LEFT
     beq  t2, t3, PLAYER_MOVE_LEFT
@@ -115,8 +119,11 @@ _PLAYER_HANDLE_INPUT_CONTINUE:
     li   t3, INPUT_RIGHT
     beq  t2, t3, PLAYER_MOVE_RIGHT
 
+_PLAYER_READ_INPUT_DONE:
     ret
 
+# PLAYER_JUMP
+# Processa input de pulo pressionado neste frame.
 PLAYER_JUMP:
     li a7, 11
     li a0, 'J'
@@ -126,9 +133,11 @@ PLAYER_JUMP:
     li a0, 10      # '\n'
     ecall
 
-    j _PLAYER_HANDLE_INPUT_CONTINUE
+    j _PLAYER_READ_INPUT_CONTINUE
 
 
+# PLAYER_MOVE_RIGHT
+# Move player para direita e atualiza direcao.
 PLAYER_MOVE_RIGHT:
     li t1, 1
     la t0, PLAYER_IS_MOVING
@@ -145,6 +154,8 @@ PLAYER_MOVE_RIGHT:
 
     ret
 
+# PLAYER_MOVE_LEFT
+# Move player para esquerda e atualiza direcao.
 PLAYER_MOVE_LEFT:
     li t1, 1
     la t0, PLAYER_IS_MOVING
