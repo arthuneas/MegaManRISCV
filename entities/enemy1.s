@@ -21,15 +21,17 @@
 .eqv ENEMY1_Y_OFF       2
 .eqv ENEMY1_VEL_X_OFF   4
 .eqv ENEMY1_STATE_OFF   8
-.eqv ENEMY1_SIZE        12
+.eqv ENEMY1_FRAME_OFF   12
+.eqv ENEMY1_ALIVE_OFF   16
+.eqv ENEMY1_SIZE        20
 
 
   ENEMY1_TABLE:
-      # x, y, vel_x, state
+      # x, y, vel_x, state, frame, alive
       .half 0, 0
-      .word 0, 0
+      .word 0, 0, 0, 0
       .half 0, 0
-      .word 0, 0
+      .word 0, 0, 0, 0
 
 
 .text
@@ -58,8 +60,13 @@ _ENEMY1_SETUP_LOOP:
 
     sw zero, ENEMY1_VEL_X_OFF(s2)
 
-    li t0, ENEMY1_STATE_PATROLLING
-    sw t0, ENEMY1_STATE_OFF(s2)
+    # li t0, ENEMY1_STATE_PATROLLING
+    # sw t0, ENEMY1_STATE_OFF(s2)
+
+    sw zero, ENEMY1_FRAME_OFF(s2)
+
+    li t0, 1
+    sw t0, ENEMY1_ALIVE_OFF(s2)
 
     addi s3, s3, MAPA1_ENTITY_POSITION_SIZE_BYTES
     addi s2, s2, ENEMY1_SIZE
@@ -103,16 +110,20 @@ _ENEMY1_RENDER_LOOP:
 
     beq s0, s1, _ENEMY1_RENDER_LOOP_END
 
+    lw t0, ENEMY1_ALIVE_OFF(s2)
+    beqz t0, _ENEMY1_RENDER_NEXT
+
     lh a0, ENEMY1_X_OFF(s2)
     lh a1, ENEMY1_Y_OFF(s2)
     call WORLD_TO_SCREEN_POSITION
 
     mv a2, a1
     mv a1, a0
-    la a0, ENEMY1_SPRITE_WALKING_1
+    la a0, ENEMY1_SPRITE_HIDING_1
     li a4, 0
     call RENDER_ENTITY
 
+_ENEMY1_RENDER_NEXT:
     addi s0, s0, 1
     addi s2, s2, ENEMY1_SIZE
     j _ENEMY1_RENDER_LOOP

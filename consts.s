@@ -20,6 +20,10 @@ KNOCKBACK_DURACAO:       .word 350    # 350ms travado, sendo empurrado
 KNOCKBACK_VEL_X:         .word 0
 
 
+PLAYER_HP_MAX:          .byte 28
+PLAYER_MP_MAX:          .byte 28
+
+
 # ===========================================================================
 # PLAYER ATTR
 # ===========================================================================

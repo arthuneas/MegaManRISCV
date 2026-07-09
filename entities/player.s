@@ -15,6 +15,9 @@ PLAYER_SHOTS_DIRECTION: .word 0, 0, 0
 PLAYER_SHOTS_X:      .half 0, 0, 0
 PLAYER_SHOTS_Y:      .half 0, 0, 0
 
+PLAYER_HP:        .byte PLAYER_HP_MAX
+PLAYER_MP:         .byte PLAYER_MP_MAX
+
 .text
 
 # PLAYER_SETUP
