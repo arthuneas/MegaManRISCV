@@ -11,6 +11,7 @@
 .include "assets/maps/MAPA1_colisao.s"
 .include "assets/maps/MAPA1_visual.s"
 .include "assets/sprites/player/megaman_frames.data"
+.include "assets/sprites/player/shoot.data"
 
 BG_POS:     .half 0, 0
 OLD_BG_POS: .half 0, 0

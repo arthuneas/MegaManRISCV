@@ -9,6 +9,11 @@ PLAYER_VEL_Y:        .word 0
 PLAYER_IS_IN_AIR:    .word 0
 PLAYER_IS_ON_LADDER: .word 0
 PLAYER_STATE:        .word PLAYER_STATE_IDLE
+PLAYER_SHOOT_TIMER:  .word 0
+PLAYER_SHOTS_ACTIVE: .word 0, 0, 0
+PLAYER_SHOTS_DIRECTION: .word 0, 0, 0
+PLAYER_SHOTS_X:      .half 0, 0, 0
+PLAYER_SHOTS_Y:      .half 0, 0, 0
 
 .text
 
@@ -40,6 +45,14 @@ PLAYER_SETUP:
     la t0, PLAYER_IS_ON_LADDER
     sw zero, 0(t0)
 
+    la t0, PLAYER_SHOOT_TIMER
+    sw zero, 0(t0)
+
+    la t0, PLAYER_SHOTS_ACTIVE
+    sw zero, 0(t0)
+    sw zero, 4(t0)
+    sw zero, 8(t0)
+
     la a0, MAPA1_PLAYER
     la a1, PLAYER_POSITION
     call LOAD_ENTITY_POSITION
@@ -65,6 +78,7 @@ PLAYER_UPDATE:
 
     call PLAYER_READ_INPUT
     call PLAYER_APPLY_VERTICAL_PHYSICS
+    call PLAYER_UPDATE_SHOTS
     call PLAYER_UPDATE_STATE
     call PLAYER_UPDATE_ANIMATION
 
@@ -109,6 +123,9 @@ PLAYER_RENDER:
     lw a3, 4(sp)
     call RENDER_ENTITY
 
+    lw a3, 4(sp)
+    call PLAYER_RENDER_SHOTS
+
     lw   ra, 0(sp)
     addi sp, sp, 20
     ret
@@ -125,6 +142,10 @@ PLAYER_READ_INPUT:
     la  t0, INPUT_PRESSED
     lw  t4, 0(t0)
 
+    andi t5, t4, INPUT_SHOOT
+    bnez t5, PLAYER_SHOOT
+
+_PLAYER_READ_INPUT_CHECK_JUMP:
     andi t5, t4, INPUT_JUMP
     bnez t5, PLAYER_JUMP
 
@@ -142,6 +163,16 @@ _PLAYER_READ_INPUT_CONTINUE:
 
 _PLAYER_READ_INPUT_DONE:
     ret
+
+# PLAYER_SHOOT
+# Processa input de tiro pressionado neste frame.
+PLAYER_SHOOT:
+    addi sp, sp, -4
+    sw   ra, 0(sp)
+    call PLAYER_START_SHOOT
+    lw   ra, 0(sp)
+    addi sp, sp, 4
+    j _PLAYER_READ_INPUT_CHECK_JUMP
 
 # PLAYER_JUMP
 # Processa input de pulo pressionado neste frame.
@@ -170,6 +201,143 @@ PLAYER_START_JUMP:
 _PLAYER_START_JUMP_DONE:
     ret
 
+# PLAYER_START_SHOOT
+# Cria um projetil no primeiro slot livre; maximo de PLAYER_SHOTS_MAX ativos.
+PLAYER_START_SHOOT:
+    la t0, PLAYER_SHOTS_ACTIVE
+    la t1, PLAYER_SHOTS_X
+    la t2, PLAYER_SHOTS_Y
+    la t3, PLAYER_SHOTS_DIRECTION
+    li t4, 0
+    li t5, PLAYER_SHOTS_MAX
+
+_PLAYER_START_SHOOT_FIND_SLOT:
+    lw t6, 0(t0)
+    beqz t6, _PLAYER_START_SHOOT_FOUND_SLOT
+    addi t0, t0, 4
+    addi t1, t1, 2
+    addi t2, t2, 2
+    addi t3, t3, 4
+    addi t4, t4, 1
+    blt t4, t5, _PLAYER_START_SHOOT_FIND_SLOT
+    ret
+
+_PLAYER_START_SHOOT_FOUND_SLOT:
+    li t6, 1
+    sw t6, 0(t0)
+
+    la t4, PLAYER_DIRECTION
+    lw t5, 0(t4)
+    sw t5, 0(t3)
+
+    la t4, PLAYER_POSITION
+    lh t6, 0(t4)
+    beqz t5, _PLAYER_START_SHOOT_RIGHT
+
+    li t5, PLAYER_SHOT_W
+    sub t6, t6, t5
+    j _PLAYER_START_SHOOT_SAVE_X
+
+_PLAYER_START_SHOOT_RIGHT:
+    addi t6, t6, PLAYER_LARGURA
+
+_PLAYER_START_SHOOT_SAVE_X:
+    sh t6, 0(t1)
+
+    lh t6, 2(t4)
+    sh t6, 0(t2)
+
+    la t0, PLAYER_SHOOT_TIMER
+    li t1, PLAYER_SHOOT_DURATION
+    sw t1, 0(t0)
+    ret
+
+# PLAYER_UPDATE_SHOTS
+# Atualiza timer de tiro e move/desativa projeteis ativos.
+PLAYER_UPDATE_SHOTS:
+    addi sp, sp, -28
+    sw   ra, 0(sp)
+    sw   s1, 4(sp)
+    sw   s2, 8(sp)
+    sw   s3, 12(sp)
+    sw   s4, 16(sp)
+    sw   s5, 20(sp)
+    sw   s6, 24(sp)
+
+    la t0, PLAYER_SHOOT_TIMER
+    lw t1, 0(t0)
+    beqz t1, _PLAYER_UPDATE_SHOTS_LOOP_SETUP
+    addi t1, t1, -1
+    sw t1, 0(t0)
+
+_PLAYER_UPDATE_SHOTS_LOOP_SETUP:
+    li s1, 0
+    la s2, PLAYER_SHOTS_ACTIVE
+    la s3, PLAYER_SHOTS_X
+    la s4, PLAYER_SHOTS_Y
+    la s5, PLAYER_SHOTS_DIRECTION
+    li s6, PLAYER_SHOTS_MAX
+
+_PLAYER_UPDATE_SHOTS_LOOP:
+    lw t0, 0(s2)
+    beqz t0, _PLAYER_UPDATE_SHOTS_NEXT
+
+    lh t1, 0(s3)
+    lh t2, 0(s4)
+    lw t3, 0(s5)
+    beqz t3, _PLAYER_UPDATE_SHOTS_RIGHT
+
+    li t4, PLAYER_SHOT_SPEED
+    sub t1, t1, t4
+    j _PLAYER_UPDATE_SHOTS_SAVE_X
+
+_PLAYER_UPDATE_SHOTS_RIGHT:
+    addi t1, t1, PLAYER_SHOT_SPEED
+
+_PLAYER_UPDATE_SHOTS_SAVE_X:
+    sh t1, 0(s3)
+
+    la t4, BG_POS
+    lh t5, 0(t4)
+    sub t5, t1, t5
+
+    bltz t5, _PLAYER_UPDATE_SHOTS_DEACTIVATE
+
+    li t4, SCREEN_W
+    bge t5, t4, _PLAYER_UPDATE_SHOTS_DEACTIVATE
+
+    la t4, BG_POS
+    lh t5, 2(t4)
+    sub t5, t2, t5
+
+    li t4, PLAYER_SHOT_H
+    sub t4, zero, t4
+    blt t5, t4, _PLAYER_UPDATE_SHOTS_DEACTIVATE
+
+    li t4, SCREEN_H
+    blt t5, t4, _PLAYER_UPDATE_SHOTS_NEXT
+
+_PLAYER_UPDATE_SHOTS_DEACTIVATE:
+    sw zero, 0(s2)
+
+_PLAYER_UPDATE_SHOTS_NEXT:
+    addi s1, s1, 1
+    addi s2, s2, 4
+    addi s3, s3, 2
+    addi s4, s4, 2
+    addi s5, s5, 4
+    blt s1, s6, _PLAYER_UPDATE_SHOTS_LOOP
+
+    lw   s6, 24(sp)
+    lw   s5, 20(sp)
+    lw   s4, 16(sp)
+    lw   s3, 12(sp)
+    lw   s2, 8(sp)
+    lw   s1, 4(sp)
+    lw   ra, 0(sp)
+    addi sp, sp, 28
+    ret
+
 # PLAYER_SET_STATE
 # a0 = novo estado do player.
 PLAYER_SET_STATE:
@@ -178,6 +346,19 @@ PLAYER_SET_STATE:
     beq t1, a0, _PLAYER_SET_STATE_DONE
 
     sw a0, 0(t0)
+
+    li t2, PLAYER_STATE_ATIRANDO
+    bne a0, t2, _PLAYER_SET_STATE_CHECK_LEAVING_RUN_SHOOT
+    li t2, PLAYER_STATE_ANDANDO
+    beq t1, t2, _PLAYER_SET_STATE_DONE
+
+_PLAYER_SET_STATE_CHECK_LEAVING_RUN_SHOOT:
+    li t2, PLAYER_STATE_ANDANDO
+    bne a0, t2, _PLAYER_SET_STATE_RESET_ANIMATION
+    li t2, PLAYER_STATE_ATIRANDO
+    beq t1, t2, _PLAYER_SET_STATE_DONE
+
+_PLAYER_SET_STATE_RESET_ANIMATION:
     la t0, PLAYER_ANIMATION_FRAME
     sw zero, 0(t0)
 
@@ -203,6 +384,13 @@ PLAYER_UPDATE_STATE:
     lw t1, 0(t0)
     bnez t1, _PLAYER_UPDATE_STATE_AIR
 
+    la t0, PLAYER_SHOOT_TIMER
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_UPDATE_STATE_SHOOTING
+
+    call PLAYER_HAS_ACTIVE_SHOT
+    bnez a0, _PLAYER_UPDATE_STATE_SHOOTING
+
     la t0, PLAYER_IS_MOVING
     lw t1, 0(t0)
     bnez t1, _PLAYER_UPDATE_STATE_MOVING
@@ -217,7 +405,24 @@ _PLAYER_UPDATE_STATE_LADDER:
     j _PLAYER_UPDATE_STATE_DONE
 
 _PLAYER_UPDATE_STATE_AIR:
+    la t0, PLAYER_SHOOT_TIMER
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_UPDATE_STATE_AIR_SHOOTING
+
+    call PLAYER_HAS_ACTIVE_SHOT
+    bnez a0, _PLAYER_UPDATE_STATE_AIR_SHOOTING
+
     li a0, PLAYER_STATE_NO_AR
+    call PLAYER_SET_STATE
+    j _PLAYER_UPDATE_STATE_DONE
+
+_PLAYER_UPDATE_STATE_SHOOTING:
+    li a0, PLAYER_STATE_ATIRANDO
+    call PLAYER_SET_STATE
+    j _PLAYER_UPDATE_STATE_DONE
+
+_PLAYER_UPDATE_STATE_AIR_SHOOTING:
+    li a0, PLAYER_STATE_ATIRA_PULANDO
     call PLAYER_SET_STATE
     j _PLAYER_UPDATE_STATE_DONE
 
@@ -228,6 +433,27 @@ _PLAYER_UPDATE_STATE_MOVING:
 _PLAYER_UPDATE_STATE_DONE:
     lw   ra, 0(sp)
     addi sp, sp, 4
+    ret
+
+# PLAYER_HAS_ACTIVE_SHOT
+# Retorna a0 = 1 se existe algum projetil do player ativo.
+PLAYER_HAS_ACTIVE_SHOT:
+    la t0, PLAYER_SHOTS_ACTIVE
+    li t1, 0
+    li t2, PLAYER_SHOTS_MAX
+
+_PLAYER_HAS_ACTIVE_SHOT_LOOP:
+    lw t3, 0(t0)
+    bnez t3, _PLAYER_HAS_ACTIVE_SHOT_TRUE
+    addi t0, t0, 4
+    addi t1, t1, 1
+    blt t1, t2, _PLAYER_HAS_ACTIVE_SHOT_LOOP
+
+    li a0, 0
+    ret
+
+_PLAYER_HAS_ACTIVE_SHOT_TRUE:
+    li a0, 1
     ret
 
 # PLAYER_UPDATE_ANIMATION
@@ -250,6 +476,12 @@ PLAYER_GET_CURRENT_SPRITE:
 
     li t2, PLAYER_STATE_NO_AR
     beq t1, t2, _PLAYER_GET_CURRENT_SPRITE_JUMP
+
+    li t2, PLAYER_STATE_ATIRA_PULANDO
+    beq t1, t2, _PLAYER_GET_CURRENT_SPRITE_SHOOT_JUMP
+
+    li t2, PLAYER_STATE_ATIRANDO
+    beq t1, t2, _PLAYER_GET_CURRENT_SPRITE_SHOOTING
 
     li t2, PLAYER_STATE_ANDANDO
     beq t1, t2, _PLAYER_GET_CURRENT_SPRITE_RUNNING
@@ -297,6 +529,40 @@ _PLAYER_GET_CURRENT_SPRITE_JUMP:
     la a0, PLAYER_SPRITE_JUMP
     j _PLAYER_GET_CURRENT_SPRITE_DONE
 
+_PLAYER_GET_CURRENT_SPRITE_SHOOT_JUMP:
+    la a0, PLAYER_SPRITE_SHOOT_JUMP
+    j _PLAYER_GET_CURRENT_SPRITE_DONE
+
+_PLAYER_GET_CURRENT_SPRITE_SHOOTING:
+    la t0, PLAYER_IS_MOVING
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_GET_CURRENT_SPRITE_SHOOT_RUNNING
+
+    la a0, PLAYER_SPRITE_SHOOT
+    j _PLAYER_GET_CURRENT_SPRITE_DONE
+
+_PLAYER_GET_CURRENT_SPRITE_SHOOT_RUNNING:
+    la t0, PLAYER_ANIMATION_FRAME
+    lw a0, 0(t0)
+    li a1, 2
+    li a2, 3
+    call ANIMATION_GET_FRAME_INDEX
+
+    li t2, 1
+    beq a0, t2, _PLAYER_GET_CURRENT_SPRITE_SHOOT_RUN_2
+    li t2, 2
+    beq a0, t2, _PLAYER_GET_CURRENT_SPRITE_SHOOT_RUN_1
+    la a0, PLAYER_SPRITE_SHOOT_RUN_3
+    j _PLAYER_GET_CURRENT_SPRITE_DONE
+
+_PLAYER_GET_CURRENT_SPRITE_SHOOT_RUN_1:
+    la a0, PLAYER_SPRITE_SHOOT_RUN_1
+    j _PLAYER_GET_CURRENT_SPRITE_DONE
+
+_PLAYER_GET_CURRENT_SPRITE_SHOOT_RUN_2:
+    la a0, PLAYER_SPRITE_SHOOT_RUN_2
+    j _PLAYER_GET_CURRENT_SPRITE_DONE
+
 _PLAYER_GET_CURRENT_SPRITE_LADDER:
     la t0, PLAYER_IS_MOVING
     lw t1, 0(t0)
@@ -322,6 +588,76 @@ _PLAYER_GET_CURRENT_SPRITE_RIGHT:
 _PLAYER_GET_CURRENT_SPRITE_DONE:
     lw   ra, 0(sp)
     addi sp, sp, 4
+    ret
+
+# PLAYER_RENDER_SHOTS
+# a3 = endereco base do framebuffer; renderiza ate 3 projeteis ativos.
+PLAYER_RENDER_SHOTS:
+    addi sp, sp, -32
+    sw   ra, 0(sp)
+    sw   s1, 4(sp)
+    sw   s2, 8(sp)
+    sw   s3, 12(sp)
+    sw   s4, 16(sp)
+    sw   s5, 20(sp)
+    sw   s6, 24(sp)
+    sw   s7, 28(sp)
+
+    mv s7, a3
+    li s1, 0
+    la s2, PLAYER_SHOTS_ACTIVE
+    la s3, PLAYER_SHOTS_X
+    la s4, PLAYER_SHOTS_Y
+    li s5, PLAYER_SHOTS_MAX
+
+_PLAYER_RENDER_SHOTS_LOOP:
+    lw t0, 0(s2)
+    beqz t0, _PLAYER_RENDER_SHOTS_NEXT
+
+    lh a0, 0(s3)
+    lh a1, 0(s4)
+    call WORLD_TO_SCREEN_POSITION
+
+    mv s6, a0
+    mv t1, a1
+
+    bltz s6, _PLAYER_RENDER_SHOTS_NEXT
+    li t2, SCREEN_W
+    li t3, PLAYER_SHOT_W
+    sub t2, t2, t3
+    bge s6, t2, _PLAYER_RENDER_SHOTS_NEXT
+
+    li t2, PLAYER_SHOT_H
+    sub t2, zero, t2
+    blt t1, t2, _PLAYER_RENDER_SHOTS_NEXT
+    li t2, SCREEN_H
+    li t3, PLAYER_SHOT_H
+    sub t2, t2, t3
+    bge t1, t2, _PLAYER_RENDER_SHOTS_NEXT
+
+    la a0, PLAYER_SPRITE_SHOOT_PROJECTILE
+    mv a1, s6
+    mv a2, t1
+    mv a3, s7
+    li a4, 0
+    call PRINT
+
+_PLAYER_RENDER_SHOTS_NEXT:
+    addi s1, s1, 1
+    addi s2, s2, 4
+    addi s3, s3, 2
+    addi s4, s4, 2
+    blt s1, s5, _PLAYER_RENDER_SHOTS_LOOP
+
+    lw   s7, 28(sp)
+    lw   s6, 24(sp)
+    lw   s5, 20(sp)
+    lw   s4, 16(sp)
+    lw   s3, 12(sp)
+    lw   s2, 8(sp)
+    lw   s1, 4(sp)
+    lw   ra, 0(sp)
+    addi sp, sp, 32
     ret
 
 # PLAYER_GET_RENDER_FLAGS

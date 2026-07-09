@@ -49,6 +49,7 @@
 .eqv SC_MAC_S 1
 .eqv SC_MAC_D 2
 .eqv SC_MAC_W 13
+.eqv SC_MAC_J 38
 .eqv SC_MAC_K 40
 
 # Mascaras do keymap PS/2 da FPGA (RISCV-v24).
@@ -165,8 +166,15 @@ READ_INPUT_CHECK_MAC_W:
         # W: scancode 13 -> byte 1, bit 5
         lbu t1,1(t0)
         andi t2,t1,0x20
-        beqz t2,READ_INPUT_CHECK_MAC_K
+        beqz t2,READ_INPUT_CHECK_MAC_J
         ori t4,t4,INPUT_UP
+
+READ_INPUT_CHECK_MAC_J:
+        # J: scancode 38 -> byte 4, bit 6
+        lbu t1,4(t0)
+        andi t2,t1,0x40
+        beqz t2,READ_INPUT_CHECK_MAC_K
+        ori t4,t4,INPUT_SHOOT
 
 READ_INPUT_CHECK_MAC_K:
         # K: scancode 40 -> byte 5, bit 0
