@@ -63,6 +63,7 @@ CURRENT_MAP_DESCRIPTOR:     .word MAPA1_DESCRIPTOR
 
 main:
         li s0, 0
+        call PLAYER_RESET_HP
         la a0, MAPA1_DESCRIPTOR
         call GAME_LOAD_MAP
 
@@ -165,6 +166,9 @@ UPDATE_GAME:
         sw   ra, 0(sp)
 
         call PLAYER_UPDATE
+        call GAME_CHECK_PLAYER_DEAD
+        bnez a0, _UPDATE_GAME_AFTER_TRANSITION
+
         call GAME_CHECK_MAP_TRANSITION
         bnez a0, _UPDATE_GAME_AFTER_TRANSITION
 
@@ -175,6 +179,30 @@ _UPDATE_GAME_AFTER_TRANSITION:
         call CAMERA_UPDATE
         # call MUSIC_UPDATE
 
+        lw   ra, 0(sp)
+        addi sp, sp, 4
+        ret
+
+# GAME_CHECK_PLAYER_DEAD
+# Reinicia o jogo no MAPA1 quando a vida do player chega a zero.
+GAME_CHECK_PLAYER_DEAD:
+        addi sp, sp, -4
+        sw   ra, 0(sp)
+
+        la t0, PLAYER_HP
+        lbu t1, 0(t0)
+        bnez t1, _GAME_CHECK_PLAYER_DEAD_FALSE
+
+        call PLAYER_RESET_HP
+        la a0, MAPA1_DESCRIPTOR
+        call GAME_LOAD_MAP
+        li a0, 1
+        j _GAME_CHECK_PLAYER_DEAD_DONE
+
+_GAME_CHECK_PLAYER_DEAD_FALSE:
+        li a0, 0
+
+_GAME_CHECK_PLAYER_DEAD_DONE:
         lw   ra, 0(sp)
         addi sp, sp, 4
         ret

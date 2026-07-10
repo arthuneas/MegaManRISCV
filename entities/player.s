@@ -96,6 +96,14 @@ PLAYER_SETUP:
     addi sp, sp, 4
     ret
 
+# PLAYER_RESET_HP
+# Restaura a vida maxima do player.
+PLAYER_RESET_HP:
+    la t0, PLAYER_HP
+    li t1, PLAYER_HP_MAX
+    sb t1, 0(t0)
+    ret
+
 # PLAYER_UPDATE
 # Atualiza input, fisica e estado do player.
 PLAYER_UPDATE:
@@ -238,6 +246,7 @@ PLAYER_RENDER:
     sw   ra, 0(sp)
     sw   a3, 4(sp)
 
+_PLAYER_RENDER_BODY:
     la t0, PLAYER_POSITION
     lh a0, 0(t0)
     lh a1, 2(t0)
@@ -741,6 +750,9 @@ PLAYER_GET_CURRENT_SPRITE:
     la t0, PLAYER_STATE
     lw t1, 0(t0)
 
+    li t2, PLAYER_STATE_KNOCKBACK
+    beq t1, t2, _PLAYER_GET_CURRENT_SPRITE_HURT
+
     li t2, PLAYER_STATE_NA_ESCADA
     beq t1, t2, _PLAYER_GET_CURRENT_SPRITE_LADDER
 
@@ -801,6 +813,10 @@ _PLAYER_GET_CURRENT_SPRITE_JUMP:
 
 _PLAYER_GET_CURRENT_SPRITE_SHOOT_JUMP:
     la a0, PLAYER_SPRITE_SHOOT_JUMP
+    j _PLAYER_GET_CURRENT_SPRITE_DONE
+
+_PLAYER_GET_CURRENT_SPRITE_HURT:
+    la a0, PLAYER_SPRITE_HURT
     j _PLAYER_GET_CURRENT_SPRITE_DONE
 
 _PLAYER_GET_CURRENT_SPRITE_SHOOTING:

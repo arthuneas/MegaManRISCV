@@ -577,6 +577,120 @@ _ENEMY1_HANDLE_SHOT_COLLISION_DONE:
     ret
 
 
+# ENEMY1_CHECK_PLAYER_COLLISION
+# Retorna a0 = 1 se o player encostou em um enemy1 vivo, a1 = x do enemy.
+ENEMY1_CHECK_PLAYER_COLLISION:
+    la t0, PLAYER_POSITION
+    lh t1, 0(t0)
+    addi t1, t1, PLAYER_HITBOX_OFFSET_X
+    li t2, PLAYER_HITBOX_LARGURA
+    add t2, t1, t2
+
+    lh t3, 2(t0)
+    addi t3, t3, TILE_H
+    li t4, PLAYER_ALTURA
+    sub t3, t3, t4
+    add t4, t3, t4
+
+    li a3, 0
+    la a2, CURRENT_MAP_INIMIGO1_COUNT
+    lw a4, 0(a2)
+    la a2, ENEMY1_TABLE
+
+_ENEMY1_CHECK_PLAYER_COLLISION_LOOP:
+    beq a3, a4, _ENEMY1_CHECK_PLAYER_COLLISION_FALSE
+
+    lw a5, ENEMY1_ALIVE_OFF(a2)
+    beqz a5, _ENEMY1_CHECK_PLAYER_COLLISION_NEXT
+
+    lh a5, ENEMY1_X_OFF(a2)
+    addi a5, a5, ENEMY1_HITBOX_OFFSET_X
+    li a6, ENEMY1_HITBOX_W
+    add a6, a5, a6
+
+    bge t1, a6, _ENEMY1_CHECK_PLAYER_COLLISION_NEXT
+    bge a5, t2, _ENEMY1_CHECK_PLAYER_COLLISION_NEXT
+
+    lh a5, ENEMY1_Y_OFF(a2)
+    addi a5, a5, TILE_H
+    li a6, ENEMY1_HITBOX_H
+    sub a5, a5, a6
+    add a6, a5, a6
+
+    bge t3, a6, _ENEMY1_CHECK_PLAYER_COLLISION_NEXT
+    bge a5, t4, _ENEMY1_CHECK_PLAYER_COLLISION_NEXT
+
+    li a0, 1
+    lh a1, ENEMY1_X_OFF(a2)
+    ret
+
+_ENEMY1_CHECK_PLAYER_COLLISION_NEXT:
+    addi a3, a3, 1
+    addi a2, a2, ENEMY1_SIZE
+    j _ENEMY1_CHECK_PLAYER_COLLISION_LOOP
+
+_ENEMY1_CHECK_PLAYER_COLLISION_FALSE:
+    li a0, 0
+    ret
+
+
+# ENEMY1_CHECK_PLAYER_SHOT_COLLISION
+# Retorna a0 = 1 se um tiro do enemy1 acertou o player, a1 = x do tiro.
+ENEMY1_CHECK_PLAYER_SHOT_COLLISION:
+    la t0, PLAYER_POSITION
+    lh t1, 0(t0)
+    addi t1, t1, PLAYER_HITBOX_OFFSET_X
+    li t2, PLAYER_HITBOX_LARGURA
+    add t2, t1, t2
+
+    lh t3, 2(t0)
+    addi t3, t3, TILE_H
+    li t4, PLAYER_ALTURA
+    sub t3, t3, t4
+    add t4, t3, t4
+
+    li a5, 0
+    la a2, ENEMY1_SHOTS_ACTIVE
+    la a3, ENEMY1_SHOTS_X
+    la a4, ENEMY1_SHOTS_Y
+
+_ENEMY1_CHECK_PLAYER_SHOT_COLLISION_LOOP:
+    li a6, ENEMY1_SHOTS_MAX
+    beq a5, a6, _ENEMY1_CHECK_PLAYER_SHOT_COLLISION_FALSE
+
+    lw a6, 0(a2)
+    beqz a6, _ENEMY1_CHECK_PLAYER_SHOT_COLLISION_NEXT
+
+    lh a6, 0(a3)
+    li a7, PLAYER_SHOT_W
+    add a7, a6, a7
+
+    bge t1, a7, _ENEMY1_CHECK_PLAYER_SHOT_COLLISION_NEXT
+    bge a6, t2, _ENEMY1_CHECK_PLAYER_SHOT_COLLISION_NEXT
+
+    lh a7, 0(a4)
+    addi a0, a7, PLAYER_SHOT_H
+
+    bge t3, a0, _ENEMY1_CHECK_PLAYER_SHOT_COLLISION_NEXT
+    bge a7, t4, _ENEMY1_CHECK_PLAYER_SHOT_COLLISION_NEXT
+
+    sw zero, 0(a2)
+    li a0, 1
+    mv a1, a6
+    ret
+
+_ENEMY1_CHECK_PLAYER_SHOT_COLLISION_NEXT:
+    addi a5, a5, 1
+    addi a2, a2, 4
+    addi a3, a3, 2
+    addi a4, a4, 2
+    j _ENEMY1_CHECK_PLAYER_SHOT_COLLISION_LOOP
+
+_ENEMY1_CHECK_PLAYER_SHOT_COLLISION_FALSE:
+    li a0, 0
+    ret
+
+
 # ENEMY_DEAD_SPAWN
 # a0 = x no mundo, a1 = y da entidade no mundo
 ENEMY_DEAD_SPAWN:

@@ -545,6 +545,61 @@ _ENEMY2_HANDLE_SHOT_COLLISION_DONE:
     ret
 
 
+# ENEMY2_CHECK_PLAYER_COLLISION
+# Retorna a0 = 1 se o player encostou em um enemy2 vivo, a1 = x do enemy.
+ENEMY2_CHECK_PLAYER_COLLISION:
+    la t0, PLAYER_POSITION
+    lh t1, 0(t0)
+    addi t1, t1, PLAYER_HITBOX_OFFSET_X
+    li t2, PLAYER_HITBOX_LARGURA
+    add t2, t1, t2
+
+    lh t3, 2(t0)
+    addi t3, t3, TILE_H
+    li t4, PLAYER_ALTURA
+    sub t3, t3, t4
+    add t4, t3, t4
+
+    li a3, 0
+    la a2, CURRENT_MAP_INIMIGO2_COUNT
+    lw a4, 0(a2)
+    la a2, ENEMY2_TABLE
+
+_ENEMY2_CHECK_PLAYER_COLLISION_LOOP:
+    beq a3, a4, _ENEMY2_CHECK_PLAYER_COLLISION_FALSE
+
+    lw a5, ENEMY2_ALIVE_OFF(a2)
+    beqz a5, _ENEMY2_CHECK_PLAYER_COLLISION_NEXT
+
+    lh a5, ENEMY2_X_OFF(a2)
+    addi a5, a5, ENEMY2_HITBOX_OFFSET_X
+    li a6, ENEMY2_HITBOX_W
+    add a6, a5, a6
+
+    bge t1, a6, _ENEMY2_CHECK_PLAYER_COLLISION_NEXT
+    bge a5, t2, _ENEMY2_CHECK_PLAYER_COLLISION_NEXT
+
+    lh a5, ENEMY2_Y_OFF(a2)
+    li a6, ENEMY2_HITBOX_H
+    add a6, a5, a6
+
+    bge t3, a6, _ENEMY2_CHECK_PLAYER_COLLISION_NEXT
+    bge a5, t4, _ENEMY2_CHECK_PLAYER_COLLISION_NEXT
+
+    li a0, 1
+    lh a1, ENEMY2_X_OFF(a2)
+    ret
+
+_ENEMY2_CHECK_PLAYER_COLLISION_NEXT:
+    addi a3, a3, 1
+    addi a2, a2, ENEMY2_SIZE
+    j _ENEMY2_CHECK_PLAYER_COLLISION_LOOP
+
+_ENEMY2_CHECK_PLAYER_COLLISION_FALSE:
+    li a0, 0
+    ret
+
+
 ENEMY2_RENDER:
     addi sp, sp, -20
     sw   ra, 0(sp)
