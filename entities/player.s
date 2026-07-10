@@ -8,6 +8,8 @@ PLAYER_IS_MOVING:    .word 0
 PLAYER_VEL_Y:        .word 0
 PLAYER_IS_IN_AIR:    .word 0
 PLAYER_IS_ON_LADDER: .word 0
+PLAYER_LADDER_TOUCHING: .word 0
+PLAYER_LADDER_RELEASED: .word 0
 PLAYER_STATE:        .word PLAYER_STATE_IDLE
 PLAYER_SHOOT_TIMER:  .word 0
 PLAYER_SHOTS_ACTIVE: .word 0, 0, 0
@@ -49,6 +51,12 @@ PLAYER_SETUP:
     la t0, PLAYER_IS_ON_LADDER
     sw zero, 0(t0)
 
+    la t0, PLAYER_LADDER_TOUCHING
+    sw zero, 0(t0)
+
+    la t0, PLAYER_LADDER_RELEASED
+    sw zero, 0(t0)
+
     la t0, PLAYER_SHOOT_TIMER
     sw zero, 0(t0)
 
@@ -85,6 +93,7 @@ PLAYER_UPDATE:
     la t0, PLAYER_IS_MOVING
     sw zero, 0(t0)
 
+    call PLAYER_CHECK_LADDER
     call PLAYER_READ_INPUT
     call PLAYER_APPLY_VERTICAL_PHYSICS
     call PLAYER_UPDATE_SHOTS
@@ -104,6 +113,62 @@ PLAYER_SAVE_OLD_POSITION:
     sh t2, 0(t1)
     lh t2, 2(t0)
     sh t2, 2(t1)
+    ret
+
+# PLAYER_CHECK_LADDER
+# Testa contato com escada (pes do hitbox contra o mapa) e decide se o
+# player deve ficar/entrar em PLAYER_IS_ON_LADDER.
+#   - sem contato -> solta e limpa o "liberado"
+#   - contato + ja segurando -> mantem (soltar so acontece via K ou ao
+#     pousar no chao descendo, ver PLAYER_MOVE_DOWN_LADDER)
+#   - contato + nao segurando + nao "liberado" -> agarra automatico
+#   - contato + nao segurando + "liberado por K" -> fica solto ate apertar K
+#     de novo (ver PLAYER_HANDLE_JUMP_PRESS)
+PLAYER_CHECK_LADDER:
+    addi sp, sp, -4
+    sw   ra, 0(sp)
+
+    la t0, PLAYER_POSITION
+    lh t1, 0(t0)
+    lh t2, 2(t0)
+
+    li   t4, PLAYER_HITBOX_LARGURA
+    srli t4, t4, 1
+    add  a0, t1, t4
+
+    addi t2, t2, TILE_H
+    addi t2, t2, -1
+    mv   a1, t2
+    mv   a2, t2
+
+    call PHYSICS_CHECK_LADDER
+
+    la t0, PLAYER_LADDER_TOUCHING
+    sw a0, 0(t0)
+
+    bnez a0, _PLAYER_CHECK_LADDER_TOUCHING
+
+    la t0, PLAYER_IS_ON_LADDER
+    sw zero, 0(t0)
+    la t0, PLAYER_LADDER_RELEASED
+    sw zero, 0(t0)
+    j _PLAYER_CHECK_LADDER_DONE
+
+_PLAYER_CHECK_LADDER_TOUCHING:
+    la t0, PLAYER_IS_ON_LADDER
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_CHECK_LADDER_DONE
+
+    la t2, PLAYER_LADDER_RELEASED
+    lw t3, 0(t2)
+    bnez t3, _PLAYER_CHECK_LADDER_DONE
+
+    li t1, 1
+    sw t1, 0(t0)
+
+_PLAYER_CHECK_LADDER_DONE:
+    lw   ra, 0(sp)
+    addi sp, sp, 4
     ret
 
 # PLAYER_RENDER
@@ -158,6 +223,22 @@ _PLAYER_READ_INPUT_CHECK_JUMP:
     andi t5, t4, INPUT_JUMP
     bnez t5, PLAYER_JUMP
 
+_PLAYER_READ_INPUT_CHECK_LADDER:
+    la t0, PLAYER_IS_ON_LADDER
+    lw t5, 0(t0)
+    beqz t5, _PLAYER_READ_INPUT_CONTINUE
+
+    la t0, INPUT_CURRENT
+    lw t1, 0(t0)
+
+    andi t5, t1, INPUT_UP
+    bnez t5, PLAYER_MOVE_UP_LADDER
+
+    andi t5, t1, INPUT_DOWN
+    bnez t5, PLAYER_MOVE_DOWN_LADDER
+
+    ret
+
 _PLAYER_READ_INPUT_CONTINUE:
 
     li   t3, INPUT_LEFT
@@ -186,14 +267,54 @@ PLAYER_SHOOT:
     j _PLAYER_READ_INPUT_CHECK_JUMP
 
 # PLAYER_JUMP
-# Processa input de pulo pressionado neste frame.
+# Processa input de pulo (K) pressionado neste frame.
 PLAYER_JUMP:
     addi sp, sp, -4
     sw   ra, 0(sp)
-    call PLAYER_START_JUMP
+    call PLAYER_HANDLE_JUMP_PRESS
     lw   ra, 0(sp)
     addi sp, sp, 4
     j _PLAYER_READ_INPUT_CONTINUE
+
+# PLAYER_HANDLE_JUMP_PRESS
+# Decide o efeito do botao K:
+#   - segurando a escada -> solta e da um pulo pra sair dela
+#   - tocando a escada mas solto (por K anterior) -> volta a segurar
+#   - caso contrario -> pulo normal
+PLAYER_HANDLE_JUMP_PRESS:
+    la t0, PLAYER_IS_ON_LADDER
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_HANDLE_JUMP_PRESS_RELEASE
+
+    la t0, PLAYER_LADDER_RELEASED
+    lw t1, 0(t0)
+    beqz t1, _PLAYER_HANDLE_JUMP_PRESS_NORMAL
+
+    la t0, PLAYER_LADDER_TOUCHING
+    lw t1, 0(t0)
+    beqz t1, _PLAYER_HANDLE_JUMP_PRESS_NORMAL
+
+_PLAYER_HANDLE_JUMP_PRESS_REGRAB:
+    la t0, PLAYER_IS_ON_LADDER
+    li t1, 1
+    sw t1, 0(t0)
+
+    la t0, PLAYER_LADDER_RELEASED
+    sw zero, 0(t0)
+    ret
+
+_PLAYER_HANDLE_JUMP_PRESS_RELEASE:
+    la t0, PLAYER_IS_ON_LADDER
+    sw zero, 0(t0)
+
+    la t0, PLAYER_LADDER_RELEASED
+    li t1, 1
+    sw t1, 0(t0)
+
+    j PLAYER_START_JUMP
+
+_PLAYER_HANDLE_JUMP_PRESS_NORMAL:
+    j PLAYER_START_JUMP
 
 # PLAYER_START_JUMP
 # Inicia pulo se o player nao estiver no ar.
@@ -716,6 +837,17 @@ PLAYER_GET_RENDER_FLAGS:
 # PLAYER_APPLY_VERTICAL_PHYSICS
 # Aplica velocidade vertical e colisao vertical no mapa.
 PLAYER_APPLY_VERTICAL_PHYSICS:
+    la t0, PLAYER_IS_ON_LADDER
+    lw t1, 0(t0)
+    beqz t1, _PLAYER_APPLY_VERTICAL_PHYSICS_NORMAL
+
+    la t0, PLAYER_VEL_Y
+    sw zero, 0(t0)
+    la t0, PLAYER_IS_IN_AIR
+    sw zero, 0(t0)
+    ret
+
+_PLAYER_APPLY_VERTICAL_PHYSICS_NORMAL:
     addi sp, sp, -4
     sw   ra, 0(sp)
 
@@ -792,6 +924,72 @@ PLAYER_MOVE_RIGHT:
     la t0, PLAYER_POSITION
     sh a0, 0(t0)
 
+    lw   ra, 0(sp)
+    addi sp, sp, 4
+    ret
+
+# PLAYER_MOVE_UP_LADDER
+# Sobe na escada enquanto o player estiver sobre um tile de escada.
+PLAYER_MOVE_UP_LADDER:
+    li t1, 1
+    la t0, PLAYER_IS_MOVING
+    sw t1, 0(t0)
+
+    la t0, PLAYER_POSITION
+    lh t1, 2(t0)
+    addi t1, t1, -2
+    li t2, PLAYER_Y_MIN
+    bge t1, t2, _PLAYER_MOVE_UP_LADDER_OK
+    mv t1, t2
+_PLAYER_MOVE_UP_LADDER_OK:
+    sh t1, 2(t0)
+    ret
+
+# PLAYER_MOVE_DOWN_LADDER
+# Desce na escada enquanto o player estiver sobre um tile de escada.
+# Ao pousar em chao solido logo abaixo dos pes (fim da escada), solta
+# automaticamente (equivalente a soltar com K).
+PLAYER_MOVE_DOWN_LADDER:
+    addi sp, sp, -4
+    sw   ra, 0(sp)
+
+    li t1, 1
+    la t0, PLAYER_IS_MOVING
+    sw t1, 0(t0)
+
+    la t0, PLAYER_POSITION
+    lh t1, 2(t0)
+    addi t1, t1, 2
+
+    li t2, MAPA2_MAP_ROWS
+    li t3, TILE_H
+    mul t2, t2, t3
+    li t3, PLAYER_ALTURA
+    sub t2, t2, t3
+
+    ble t1, t2, _PLAYER_MOVE_DOWN_LADDER_OK
+    mv t1, t2
+_PLAYER_MOVE_DOWN_LADDER_OK:
+    sh t1, 2(t0)
+
+    lh t3, 0(t0)
+    li t4, PLAYER_HITBOX_LARGURA
+    srli t4, t4, 1
+    add a0, t3, t4
+
+    addi a1, t1, TILE_H
+
+    call PHYSICS_GET_COLLISION_TILE
+    call PHYSICS_IS_SOLID_TILE
+    beqz a0, _PLAYER_MOVE_DOWN_LADDER_DONE
+
+    la t0, PLAYER_IS_ON_LADDER
+    sw zero, 0(t0)
+    la t0, PLAYER_LADDER_RELEASED
+    li t1, 1
+    sw t1, 0(t0)
+
+_PLAYER_MOVE_DOWN_LADDER_DONE:
     lw   ra, 0(sp)
     addi sp, sp, 4
     ret

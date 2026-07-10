@@ -45,6 +45,60 @@ _PHYSICS_IS_SOLID_TILE_TRUE:
     li a0, 1
     ret
 
+# PHYSICS_IS_LADDER_TILE
+# a0 = tile de colisao
+# retorna a0 = 1 se for escada, 0 caso contrario
+PHYSICS_IS_LADDER_TILE:
+    li t0, 2
+    beq a0, t0, _PHYSICS_IS_LADDER_TILE_TRUE
+    li a0, 0
+    ret
+
+_PHYSICS_IS_LADDER_TILE_TRUE:
+    li a0, 1
+    ret
+
+# PHYSICS_CHECK_LADDER
+# a0 = x (coluna a testar, em pixels no mundo)
+# a1 = y do topo do corpo
+# a2 = y da base do corpo
+# retorna a0 = 1 se o topo ou a base estiver sobre um tile de escada
+PHYSICS_CHECK_LADDER:
+    addi sp, sp, -16
+    sw   ra, 0(sp)
+    sw   s1, 4(sp)
+    sw   s2, 8(sp)
+    sw   s3, 12(sp)
+
+    mv s1, a0
+    mv s2, a1
+    mv s3, a2
+
+    mv   a1, s2
+    call PHYSICS_GET_COLLISION_TILE
+    call PHYSICS_IS_LADDER_TILE
+    bnez a0, _PHYSICS_CHECK_LADDER_TRUE
+
+    mv   a0, s1
+    mv   a1, s3
+    call PHYSICS_GET_COLLISION_TILE
+    call PHYSICS_IS_LADDER_TILE
+    bnez a0, _PHYSICS_CHECK_LADDER_TRUE
+
+    li a0, 0
+    j _PHYSICS_CHECK_LADDER_DONE
+
+_PHYSICS_CHECK_LADDER_TRUE:
+    li a0, 1
+
+_PHYSICS_CHECK_LADDER_DONE:
+    lw   s3, 12(sp)
+    lw   s2, 8(sp)
+    lw   s1, 4(sp)
+    lw   ra, 0(sp)
+    addi sp, sp, 16
+    ret
+
 # PHYSICS_APPLY_GRAVITY
 # Reservada; a gravidade atual fica na colisao vertical.
 PHYSICS_APPLY_GRAVITY:
