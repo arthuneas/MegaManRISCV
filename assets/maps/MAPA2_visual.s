@@ -2,7 +2,7 @@
 # Mapa: 40 colunas x 30 linhas, tile 16x16 pixels
 # Prefixo: MAPA2
 
-# .include "MAPA2_defs.s"
+# .include "MAPA_defs.s"
 
 MAPA2_VISUAL: .byte
     19, 19, 19, 0, 0, 0, 0, 19, 19, 19, 19, 19, 19, 19, 0, 0, 19, 19, 19, 0, 0, 0, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 0, 0, 0, 19, 19, 19,   # row 0

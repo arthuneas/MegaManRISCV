@@ -70,11 +70,13 @@ PLAYER_SETUP:
     sw zero, 4(t0)
     sw zero, 8(t0)
 
-    la a0, MAPA2_PLAYER
+    la t0, CURRENT_MAP_PLAYER
+    lw a0, 0(t0)
     la a1, PLAYER_POSITION
     call LOAD_ENTITY_POSITION
 
-    la a0, MAPA2_PLAYER
+    la t0, CURRENT_MAP_PLAYER
+    lw a0, 0(t0)
     la a1, PLAYER_OLD_POSITION
     call LOAD_ENTITY_POSITION
 
@@ -961,7 +963,7 @@ PLAYER_MOVE_DOWN_LADDER:
     lh t1, 2(t0)
     addi t1, t1, 2
 
-    li t2, MAPA2_MAP_ROWS
+    li t2, MAPA_MAP_ROWS
     li t3, TILE_H
     mul t2, t2, t3
     li t3, PLAYER_ALTURA

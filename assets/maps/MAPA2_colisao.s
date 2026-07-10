@@ -2,10 +2,10 @@
 # Mapa: 40 colunas x 30 linhas, tile 16x16 pixels
 # Prefixo: MAPA2
 
-# .include "MAPA2_defs.s"
+# .include "MAPA_defs.s"
 
 # Lookup (1 byte/tile):
-#   # t0 = row * MAPA2_MAP_COLS + col
+#   # t0 = row * MAPA_MAP_COLS + col
 #   la  t1, MAPA2_COLISAO
 #   add t1, t1, t0
 #   lbu t1, 0(t1)

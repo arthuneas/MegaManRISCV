@@ -1,23 +1,23 @@
-# Gerado automaticamente pelo RITMO em 2026-07-10 13:04
+# Gerado automaticamente pelo RITMO em 2026-07-10 13:42
 # Mapa: 40 colunas x 30 linhas, tile 16x16 pixels
-# Prefixo: MAPA2
+# Prefixo: MAPA
 
 # Offset (em bytes) do pixel superior-esquerdo de cada tile dentro
 # da imagem do tileset (192px de largura, 1 byte/pixel).
-# offset[i] = (i / MAPA2_TILESET_COLS) * 192 * MAPA2_TILE_H
-#           + (i % MAPA2_TILESET_COLS) * MAPA2_TILE_W
+# offset[i] = (i / MAPA_TILESET_COLS) * 192 * MAPA_TILE_H
+#           + (i % MAPA_TILESET_COLS) * MAPA_TILE_W
 #
 # Lookup:
-#   la   t1, MAPA2_TILESET_OFFSETS
+#   la   t1, MAPA_TILESET_OFFSETS
 #   slli t2, a0, 2          # a0 = tile_id
 #   add  t1, t1, t2
 #   lw   t1, 0(t1)          # offset em bytes no tileset
 
-.eqv MAPA2_TILESET_COLS 12
-.eqv MAPA2_TILESET_ROWS 10
-.eqv MAPA2_NUM_TILES    120
+.eqv MAPA_TILESET_COLS 12
+.eqv MAPA_TILESET_ROWS 10
+.eqv MAPA_NUM_TILES    120
 
-MAPA2_TILESET_OFFSETS: .word
+MAPA_TILESET_OFFSETS: .word
     0, 16, 32, 48, 64, 80, 96, 112,
     128, 144, 160, 176, 3072, 3088, 3104, 3120,
     3136, 3152, 3168, 3184, 3200, 3216, 3232, 3248,

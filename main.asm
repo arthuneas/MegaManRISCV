@@ -4,8 +4,8 @@
 
 .include "assets/tileset/tileset.data"
 
-.include "assets/maps/MAPA2_defs.s"
-.include "assets/maps/MAPA2_tileset_offsets.s"
+.include "assets/maps/MAPA_defs.s"
+.include "assets/maps/MAPA_tileset_offsets.s"
 .include "assets/maps/MAPA2_entidades.s"
 .include "assets/maps/MAPA2_colisao.s"
 .include "assets/maps/MAPA2_visual.s"
@@ -88,13 +88,13 @@ CHECK_KEY_INPUT:
     sw  t2, 12(s10)
 
     la  a0, MAPA2_VISUAL
-    li  a1, MAPA2_MAP_COLS
-    li  a2, MAPA2_MAP_ROWS
+    li  a1, MAPA_MAP_COLS
+    li  a2, MAPA_MAP_ROWS
     li  a3, 0xFF000000
     call RENDER_MAPA
     la  a0, MAPA2_VISUAL
-    li  a1, MAPA2_MAP_COLS
-    li  a2, MAPA2_MAP_ROWS
+    li  a1, MAPA_MAP_COLS
+    li  a2, MAPA_MAP_ROWS
     li  a3, 0xFF100000
     call RENDER_MAPA
 
@@ -175,8 +175,8 @@ MF0:
     sw   s0, 0(t0)
 
     la   a0, MAPA2_VISUAL
-    li   a1, MAPA2_MAP_COLS
-    li   a2, MAPA2_MAP_ROWS
+    li   a1, MAPA_MAP_COLS
+    li   a2, MAPA_MAP_ROWS
     xori t0, s0, 1
     li   a3, 0xFF0
     add  a3, a3, t0
@@ -713,9 +713,9 @@ CHECA_TILE:
     bltz a1, TILE_VAZIO
     srli t0, a0, 4
     srli t1, a1, 4
-    li   t2, MAPA2_MAP_COLS
+    li   t2, MAPA_MAP_COLS
     bge  t0, t2, TILE_VAZIO
-    li   t3, MAPA2_MAP_ROWS
+    li   t3, MAPA_MAP_ROWS
     bge  t1, t3, TILE_VAZIO
     mul  t2, t1, t2
     add  t2, t2, t0

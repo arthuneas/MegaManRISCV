@@ -69,10 +69,12 @@ ENEMY1_SETUP:
     sw   s2, 12(sp)
     sw   s3, 16(sp)
 
-    li s0, MAPA2_INIMIGO1_COUNT
+    la t0, CURRENT_MAP_INIMIGO1_COUNT
+    lw s0, 0(t0)
     li s1, 0
     la s2, ENEMY1_TABLE
-    la s3, MAPA2_INIMIGO1
+    la t0, CURRENT_MAP_INIMIGO1
+    lw s3, 0(t0)
 
 
 _ENEMY1_SETUP_LOOP:
@@ -93,7 +95,7 @@ _ENEMY1_SETUP_LOOP:
 
     sw zero, ENEMY1_SHOOT_TIMER_OFF(s2)
 
-    addi s3, s3, MAPA2_ENTITY_POSITION_SIZE_BYTES
+    addi s3, s3, MAPA_ENTITY_POSITION_SIZE_BYTES
     addi s2, s2, ENEMY1_SIZE
     addi s1, s1, 1
 
@@ -122,7 +124,8 @@ ENEMY1_UPDATE:
     call ENEMY_DEAD_UPDATE
 
     li s0, 0
-    li s1, MAPA2_INIMIGO1_COUNT
+    la t0, CURRENT_MAP_INIMIGO1_COUNT
+    lw s1, 0(t0)
     la s2, ENEMY1_TABLE
 
 _ENEMY1_UPDATE_LOOP:
@@ -432,7 +435,8 @@ ENEMY1_HANDLE_SHOT_COLLISION:
     addi s3, s1, PLAYER_SHOT_H
 
     li s4, 0
-    li s5, MAPA2_INIMIGO1_COUNT
+    la t0, CURRENT_MAP_INIMIGO1_COUNT
+    lw s5, 0(t0)
     la t0, ENEMY1_TABLE
 
 _ENEMY1_HANDLE_SHOT_COLLISION_LOOP:
@@ -637,7 +641,8 @@ ENEMY1_RENDER:
     sw   a3, 16(sp)
 
     li s0, 0
-    li s1, MAPA2_INIMIGO1_COUNT
+    la t0, CURRENT_MAP_INIMIGO1_COUNT
+    lw s1, 0(t0)
     la s2, ENEMY1_TABLE
 
 _ENEMY1_RENDER_LOOP:
