@@ -16,16 +16,83 @@
 # word2 = timestamp (ms) de quando a nota atual comecou (estado, mutavel)
 # depois: um trio (altura, duracao_ms, 0) por nota
 MUSIC_NOTAS:
-    .word 9, 0, 0
-    .word 67, 1000, 0
-    .word 74, 1000, 0
-    .word 70, 1500, 0
-    .word 69, 500, 0
-    .word 67, 500, 0
-    .word 70, 500, 0
-    .word 69, 500, 0
-    .word 67, 500, 0
-    .word 66, 500, 0
+    .word 76, 0, 0
+    .word 78, 125, 0
+    .word 77, 125, 0
+    .word 76, 125, 0
+    .word 76, 125, 0
+    .word 74, 125, 0
+    .word 73, 125, 0
+    .word 72, 125, 0
+    .word 73, 125, 0
+    .word 71, 125, 0
+    .word 70, 125, 0
+    .word 69, 125, 0
+    .word 67, 125, 0
+    .word 66, 125, 0
+    .word 65, 125, 0
+    .word 77, 500, 0
+    .word 77, 750, 0
+    .word 77, 500, 0
+    .word 77, 250, 0
+    .word 76, 1250, 0
+    .word 76, 250, 0
+    .word 74, 500, 0
+    .word 76, 500, 0
+    .word 72, 500, 0
+    .word 72, 250, 0
+    .word 76, 500, 0
+    .word 79, 500, 0
+    .word 77, 1000, 0
+    .word 77, 500, 0
+    .word 76, 250, 0
+    .word 79, 500, 0
+    .word 77, 1000, 0
+    .word 77, 250, 0
+    .word 76, 250, 0
+    .word 77, 1750, 0
+    .word 77, 250, 0
+    .word 79, 750, 0
+    .word 77, 500, 0
+    .word 76, 500, 0
+    .word 74, 500, 0
+    .word 74, 250, 0
+    .word 76, 250, 0
+    .word 74, 250, 0
+    .word 72, 1000, 0
+    .word 77, 500, 0
+    .word 77, 750, 0
+    .word 77, 500, 0
+    .word 77, 250, 0
+    .word 76, 1250, 0
+    .word 76, 250, 0
+    .word 74, 500, 0
+    .word 76, 500, 0
+    .word 72, 500, 0
+    .word 72, 250, 0
+    .word 76, 500, 0
+    .word 79, 500, 0
+    .word 77, 1000, 0
+    .word 77, 500, 0
+    .word 76, 250, 0
+    .word 79, 500, 0
+    .word 77, 1000, 0
+    .word 77, 250, 0
+    .word 76, 250, 0
+    .word 77, 1750, 0
+    .word 77, 250, 0
+    .word 79, 750, 0
+    .word 77, 500, 0
+    .word 76, 500, 0
+    .word 74, 500, 0
+    .word 74, 250, 0
+    .word 76, 250, 0
+    .word 74, 250, 0
+    .word 72, 1000, 0
+    .word 77, 500, 0
+    .word 77, 750, 0
+    .word 77, 500, 0
+    .word 77, 500, 0
 
 .text
 
@@ -67,7 +134,7 @@ _MUSIC_UPDATE_NEXT:
     li  a7, 31
     lw  a0, 0(s5)
     lw  a1, 4(s5)
-    li  a2, 0
+    li  a2, 70               #instrumento
     li  a3, 60
     ecall                     # dispara a nota (nao bloqueia)
 
