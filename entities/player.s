@@ -132,17 +132,29 @@ PLAYER_SAVE_OLD_POSITION:
     ret
 
 # PLAYER_CHECK_LADDER
-# Testa contato com escada (pes do hitbox contra o mapa) e decide se o
-# player deve ficar/entrar em PLAYER_IS_ON_LADDER.
-#   - sem contato -> solta e limpa o "liberado"
-#   - contato + ja segurando -> mantem (soltar so acontece via K ou ao
-#     pousar no chao descendo, ver PLAYER_MOVE_DOWN_LADDER)
-#   - contato + nao segurando + nao "liberado" -> agarra automatico
-#   - contato + nao segurando + "liberado por K" -> fica solto ate apertar K
-#     de novo (ver PLAYER_HANDLE_JUMP_PRESS)
+# Testa contato com escada e decide se o player deve ficar/entrar em
+# PLAYER_IS_ON_LADDER. O topo da escada agora e solido por cima (ver
+# PHYSICS_IS_SOLID_OR_LADDER_TILE), entao o player fica em pe UMA tile
+# acima da escada quando so anda por cima dela - por isso existem dois
+# testes distintos:
+#   - s3 = pes estao DENTRO de uma tile de escada (mesma linha do hitbox)
+#     -> usado para manter/soltar enquanto ja esta escalando
+#   - s4 = ha uma tile de escada logo ABAIXO dos pes (em pe no topo dela)
+#     -> so usado para decidir se um agarre novo e possivel
+#
+#   - ja escalando + ainda dentro (s3) -> mantem
+#   - ja escalando + saiu (nao s3) -> solta e limpa "liberado" (saida pelo
+#     topo/baixo da escada)
+#   - nao escalando + (dentro OU em pe no topo) + nao "liberado" +
+#     segurando cima/baixo -> agarra e entra na animacao de escada
+#   - nao escalando + nem dentro nem em pe no topo -> limpa "liberado"
 PLAYER_CHECK_LADDER:
-    addi sp, sp, -4
+    addi sp, sp, -20
     sw   ra, 0(sp)
+    sw   s1, 4(sp)
+    sw   s2, 8(sp)
+    sw   s3, 12(sp)
+    sw   s4, 16(sp)
 
     la t0, PLAYER_POSITION
     lh t1, 0(t0)
@@ -150,41 +162,73 @@ PLAYER_CHECK_LADDER:
 
     li   t4, PLAYER_HITBOX_LARGURA
     srli t4, t4, 1
-    add  a0, t1, t4
+    add  s1, t1, t4          # x central
 
-    addi t2, t2, TILE_H
-    addi t2, t2, -1
-    mv   a1, t2
-    mv   a2, t2
+    addi s2, t2, TILE_H
+    addi s2, s2, -1           # y dos pes (linha atual do hitbox)
 
+    mv a0, s1
+    mv a1, s2
+    mv a2, s2
     call PHYSICS_CHECK_LADDER
+    mv s3, a0                 # dentro de uma tile de escada?
 
     la t0, PLAYER_LADDER_TOUCHING
-    sw a0, 0(t0)
+    sw s3, 0(t0)
 
-    bnez a0, _PLAYER_CHECK_LADDER_TOUCHING
+    la t0, PLAYER_IS_ON_LADDER
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_CHECK_LADDER_ALREADY_ON
+
+    mv s4, s3
+    bnez s4, _PLAYER_CHECK_LADDER_MAYBE_GRAB
+
+    mv a0, s1
+    addi a1, s2, 2
+    call PHYSICS_GET_COLLISION_TILE
+    call PHYSICS_IS_LADDER_TILE
+    mv s4, a0
+
+_PLAYER_CHECK_LADDER_MAYBE_GRAB:
+    beqz s4, _PLAYER_CHECK_LADDER_NOT_TOUCHING
+
+    la t0, PLAYER_LADDER_RELEASED
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_CHECK_LADDER_DONE
+
+    la t0, INPUT_CURRENT
+    lw t1, 0(t0)
+    andi t2, t1, INPUT_UP
+    bnez t2, _PLAYER_CHECK_LADDER_GRAB
+    andi t2, t1, INPUT_DOWN
+    beqz t2, _PLAYER_CHECK_LADDER_DONE
+
+_PLAYER_CHECK_LADDER_GRAB:
+    la t0, PLAYER_IS_ON_LADDER
+    li t1, 1
+    sw t1, 0(t0)
+    j _PLAYER_CHECK_LADDER_DONE
+
+_PLAYER_CHECK_LADDER_NOT_TOUCHING:
+    la t0, PLAYER_LADDER_RELEASED
+    sw zero, 0(t0)
+    j _PLAYER_CHECK_LADDER_DONE
+
+_PLAYER_CHECK_LADDER_ALREADY_ON:
+    bnez s3, _PLAYER_CHECK_LADDER_DONE
 
     la t0, PLAYER_IS_ON_LADDER
     sw zero, 0(t0)
     la t0, PLAYER_LADDER_RELEASED
     sw zero, 0(t0)
-    j _PLAYER_CHECK_LADDER_DONE
-
-_PLAYER_CHECK_LADDER_TOUCHING:
-    la t0, PLAYER_IS_ON_LADDER
-    lw t1, 0(t0)
-    bnez t1, _PLAYER_CHECK_LADDER_DONE
-
-    la t2, PLAYER_LADDER_RELEASED
-    lw t3, 0(t2)
-    bnez t3, _PLAYER_CHECK_LADDER_DONE
-
-    li t1, 1
-    sw t1, 0(t0)
 
 _PLAYER_CHECK_LADDER_DONE:
+    lw   s4, 16(sp)
+    lw   s3, 12(sp)
+    lw   s2, 8(sp)
+    lw   s1, 4(sp)
     lw   ra, 0(sp)
-    addi sp, sp, 4
+    addi sp, sp, 20
     ret
 
 # PLAYER_RENDER

@@ -46,6 +46,24 @@ _PHYSICS_IS_SOLID_TILE_TRUE:
     li a0, 1
     ret
 
+# PHYSICS_IS_SOLID_OR_LADDER_TILE
+# a0 = tile de colisao
+# retorna a0 = 1 se solido ou escada, 0 caso contrario.
+# Usado apenas no pouso (queda) do player: uma escada deve funcionar como
+# chao normal por cima, a menos que o jogador segure cima/baixo para
+# agarrar nela (ver PLAYER_CHECK_LADDER).
+PHYSICS_IS_SOLID_OR_LADDER_TILE:
+    li t0, MAPA_COLLISION_SOLID
+    beq a0, t0, _PHYSICS_IS_SOLID_OR_LADDER_TILE_TRUE
+    li t0, MAPA_COLLISION_LADDER
+    beq a0, t0, _PHYSICS_IS_SOLID_OR_LADDER_TILE_TRUE
+    li a0, 0
+    ret
+
+_PHYSICS_IS_SOLID_OR_LADDER_TILE_TRUE:
+    li a0, 1
+    ret
+
 # PHYSICS_IS_LADDER_TILE
 # a0 = tile de colisao
 # retorna a0 = 1 se for escada, 0 caso contrario
@@ -240,14 +258,14 @@ _PHYSICS_RESOLVE_VERTICAL_DOWN:
     addi a0, s1, 1
     addi a1, s6, 1
     call PHYSICS_GET_COLLISION_TILE
-    call PHYSICS_IS_SOLID_TILE
+    call PHYSICS_IS_SOLID_OR_LADDER_TILE
     bnez a0, _PHYSICS_RESOLVE_VERTICAL_LAND
 
     add  a0, s1, s3
     addi a0, a0, -1
     addi a1, s6, 1
     call PHYSICS_GET_COLLISION_TILE
-    call PHYSICS_IS_SOLID_TILE
+    call PHYSICS_IS_SOLID_OR_LADDER_TILE
     bnez a0, _PHYSICS_RESOLVE_VERTICAL_LAND
 
     j _PHYSICS_RESOLVE_VERTICAL_GRAVITY
