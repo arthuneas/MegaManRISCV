@@ -140,6 +140,31 @@ _PRINT_CLIPPED_DST:
 
     mv   s8, s5
     bnez a4, _PRINT_CLIPPED_FLIP_ROW
+    bnez s9, _PRINT_CLIPPED_ROW
+    andi t0, s3, 3
+    bnez t0, _PRINT_CLIPPED_ROW
+    andi t0, s6, 3
+    bnez t0, _PRINT_CLIPPED_ROW
+    andi t0, s7, 3
+    bnez t0, _PRINT_CLIPPED_ROW
+
+_PRINT_CLIPPED_FAST_ROW:
+    mv   t0, s6
+    mv   t1, s7
+    srli t2, s3, 2
+_PRINT_CLIPPED_FAST_WORD:
+    lw   t3, 0(t0)
+    sw   t3, 0(t1)
+    addi t0, t0, 4
+    addi t1, t1, 4
+    addi t2, t2, -1
+    bnez t2, _PRINT_CLIPPED_FAST_WORD
+    add  s6, s6, s0
+    li   t0, SCREEN_W
+    add  s7, s7, t0
+    addi s8, s8, -1
+    bnez s8, _PRINT_CLIPPED_FAST_ROW
+    j    _PRINT_CLIPPED_DONE
 
 _PRINT_CLIPPED_ROW:
     mv   t0, s6
@@ -268,6 +293,35 @@ _RENDER_TILE_CB_OK:
     add  t1, t1, t2
     add  t1, a3, t1
 
+    li   t0, TILE_W
+    bne  t5, t0, _RENDER_TILE_BYTE_SETUP
+    li   t0, TILE_H
+    bne  a6, t0, _RENDER_TILE_BYTE_SETUP
+    andi t0, t1, 3
+    bnez t0, _RENDER_TILE_BYTE_SETUP
+    andi t0, t6, 3
+    bnez t0, _RENDER_TILE_BYTE_SETUP
+
+    li   t4, 0
+    li   a4, TILESET_W
+    li   a5, SCREEN_W
+_RENDER_TILE_FAST_ROW:
+    lw   t0, 0(t6)
+    sw   t0, 0(t1)
+    lw   t0, 4(t6)
+    sw   t0, 4(t1)
+    lw   t0, 8(t6)
+    sw   t0, 8(t1)
+    lw   t0, 12(t6)
+    sw   t0, 12(t1)
+    add  t6, t6, a4
+    add  t1, t1, a5
+    addi t4, t4, 1
+    li   t0, TILE_H
+    blt  t4, t0, _RENDER_TILE_FAST_ROW
+    ret
+
+_RENDER_TILE_BYTE_SETUP:
     li   t4, 0
     li   a4, TILESET_W
     li   a5, SCREEN_W

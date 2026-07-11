@@ -32,6 +32,8 @@ _CAMERA_UPDATE_X_MAX:
     mv t1, t4
 
 _CAMERA_UPDATE_SAVE_X:
+    li t4, -4
+    and t1, t1, t4
     sh t1, 0(t3)
 
     addi t2, t2, -120
