@@ -1062,17 +1062,65 @@ _PLAYER_APPLY_KNOCKBACK_MOVEMENT_DONE:
     ret
 
 
+# PLAYER_APPLY_HIT
+# a0 = x da fonte do dano no mundo (so para decidir a direcao do knockback)
+# Decrementa PLAYER_HP (clampado em 0) e ativa invulnerabilidade + knockback.
+# Compartilhado entre colisao com tiro e colisao com corpo de inimigo.
+PLAYER_APPLY_HIT:
+    addi sp, sp, -4
+    sw   ra, 0(sp)
+    mv   t6, a0
+
+    la t0, PLAYER_HP
+    lbu t1, 0(t0)
+    beqz t1, _PLAYER_APPLY_HIT_STATUS
+    addi t1, t1, -1
+    sb t1, 0(t0)
+
+_PLAYER_APPLY_HIT_STATUS:
+    la t0, ESTA_INVULNERAVEL
+    li t1, 1
+    sw t1, 0(t0)
+
+    la t0, INVULNERAVEL_TIMER
+    la t1, INVULNERAVEL_DURACAO
+    lw t1, 0(t1)
+    sw t1, 0(t0)
+
+    la t0, PLAYER_INVULN_BLINK_FRAME
+    sw zero, 0(t0)
+
+    la t0, KNOCKBACK_TIMER
+    la t1, KNOCKBACK_DURACAO
+    lw t1, 0(t1)
+    sw t1, 0(t0)
+
+    li t1, KNOCKBACK_SPEED
+    la t2, PLAYER_POSITION
+    lh t2, 0(t2)
+    blt t6, t2, _PLAYER_APPLY_HIT_PUSH_RIGHT
+    sub t1, zero, t1
+_PLAYER_APPLY_HIT_PUSH_RIGHT:
+    la t0, KNOCKBACK_VEL_X
+    sw t1, 0(t0)
+
+    li a0, PLAYER_STATE_KNOCKBACK
+    call PLAYER_SET_STATE
+
+    lw   ra, 0(sp)
+    addi sp, sp, 4
+    ret
+
+
 # PLAYER_HANDLE_ENEMY_SHOT_COLLISION
 # a0 = x do tiro inimigo no mundo, a1 = y do tiro inimigo no mundo
 # retorna a0 = 1 se atingiu o player (tiro deve ser desativado), 0 caso contrario
 # Enquanto invulneravel, nao verifica colisao (tiro atravessa sem efeito).
 PLAYER_HANDLE_ENEMY_SHOT_COLLISION:
-    addi sp, sp, -20
+    addi sp, sp, -12
     sw   ra, 0(sp)
     sw   s0, 4(sp)
     sw   s1, 8(sp)
-    sw   s2, 12(sp)
-    sw   s3, 16(sp)
 
     la t0, ESTA_INVULNERAVEL
     lw t1, 0(t0)
@@ -1103,41 +1151,8 @@ PLAYER_HANDLE_ENEMY_SHOT_COLLISION:
     bge t5, t4, _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_FALSE
     bge s1, t6, _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_FALSE
 
-    la t0, PLAYER_HP
-    lbu t1, 0(t0)
-    beqz t1, _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_APPLY_STATUS
-    addi t1, t1, -1
-    sb t1, 0(t0)
-
-_PLAYER_HANDLE_ENEMY_SHOT_COLLISION_APPLY_STATUS:
-    la t0, ESTA_INVULNERAVEL
-    li t1, 1
-    sw t1, 0(t0)
-
-    la t0, INVULNERAVEL_TIMER
-    la t1, INVULNERAVEL_DURACAO
-    lw t1, 0(t1)
-    sw t1, 0(t0)
-
-    la t0, PLAYER_INVULN_BLINK_FRAME
-    sw zero, 0(t0)
-
-    la t0, KNOCKBACK_TIMER
-    la t1, KNOCKBACK_DURACAO
-    lw t1, 0(t1)
-    sw t1, 0(t0)
-
-    li t1, KNOCKBACK_SPEED
-    la t2, PLAYER_POSITION
-    lh t2, 0(t2)
-    blt s0, t2, _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_PUSH_RIGHT
-    sub t1, zero, t1
-_PLAYER_HANDLE_ENEMY_SHOT_COLLISION_PUSH_RIGHT:
-    la t0, KNOCKBACK_VEL_X
-    sw t1, 0(t0)
-
-    li a0, PLAYER_STATE_KNOCKBACK
-    call PLAYER_SET_STATE
+    mv a0, s0
+    call PLAYER_APPLY_HIT
 
     li a0, 1
     j _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_DONE
@@ -1146,6 +1161,69 @@ _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_FALSE:
     li a0, 0
 
 _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_DONE:
+    lw   s1, 8(sp)
+    lw   s0, 4(sp)
+    lw   ra, 0(sp)
+    addi sp, sp, 12
+    ret
+
+
+# PLAYER_HANDLE_ENEMY_BODY_COLLISION
+# a0 = x do hitbox do inimigo no mundo
+# a1 = y do topo do hitbox do inimigo no mundo
+# a2 = largura do hitbox do inimigo
+# a3 = altura do hitbox do inimigo
+# retorna a0 = 1 se o corpo do inimigo esta encostando no player (dano
+# aplicado), 0 caso contrario. Enquanto invulneravel, nao verifica colisao.
+PLAYER_HANDLE_ENEMY_BODY_COLLISION:
+    addi sp, sp, -20
+    sw   ra, 0(sp)
+    sw   s0, 4(sp)
+    sw   s1, 8(sp)
+    sw   s2, 12(sp)
+    sw   s3, 16(sp)
+
+    la t0, ESTA_INVULNERAVEL
+    lw t1, 0(t0)
+    bnez t1, _PLAYER_HANDLE_ENEMY_BODY_COLLISION_FALSE
+
+    mv s0, a0
+    mv s1, a1
+    mv s2, a2
+    mv s3, a3
+
+    la t0, PLAYER_POSITION
+    lh t2, 0(t0)
+    lh t3, 2(t0)
+
+    addi t4, t2, PLAYER_HITBOX_OFFSET_X
+    li   t5, PLAYER_HITBOX_LARGURA
+    add  t6, t4, t5
+
+    add t5, s0, s2
+    bge t4, t5, _PLAYER_HANDLE_ENEMY_BODY_COLLISION_FALSE
+    bge s0, t6, _PLAYER_HANDLE_ENEMY_BODY_COLLISION_FALSE
+
+    li   t5, TILE_H
+    add  t5, t3, t5
+    li   t6, PLAYER_ALTURA
+    sub  t5, t5, t6
+    add  t6, t5, t6
+
+    add t4, s1, s3
+    bge t5, t4, _PLAYER_HANDLE_ENEMY_BODY_COLLISION_FALSE
+    bge s1, t6, _PLAYER_HANDLE_ENEMY_BODY_COLLISION_FALSE
+
+    mv a0, s0
+    call PLAYER_APPLY_HIT
+
+    li a0, 1
+    j _PLAYER_HANDLE_ENEMY_BODY_COLLISION_DONE
+
+_PLAYER_HANDLE_ENEMY_BODY_COLLISION_FALSE:
+    li a0, 0
+
+_PLAYER_HANDLE_ENEMY_BODY_COLLISION_DONE:
     lw   s3, 16(sp)
     lw   s2, 12(sp)
     lw   s1, 8(sp)
