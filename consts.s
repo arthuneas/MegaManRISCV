@@ -26,6 +26,8 @@ KNOCKBACK_VEL_X:         .word 0
 .eqv KNOCKBACK_SPEED 4
 .eqv KNOCKBACK_VEL_Y -4
 .eqv FRAME_MS 30   # aproximacao do tempo por frame (ver WAIT_FRAME), usado para decrementar os timers acima
+.eqv ENEMY_SHOT_DAMAGE 2
+.eqv ENEMY_BODY_DAMAGE 4
 
 .eqv PLAYER_WEAPON_NORMAL       0
 .eqv PLAYER_WEAPON_FREEZE       1

@@ -877,16 +877,22 @@ PLAYER_CHECK_DAMAGE_COLLISION:
     bnez t1, _PLAYER_CHECK_DAMAGE_COLLISION_DONE
 
     call ENEMY1_CHECK_PLAYER_COLLISION
-    bnez a0, _PLAYER_CHECK_DAMAGE_COLLISION_HIT
+    bnez a0, _PLAYER_CHECK_DAMAGE_COLLISION_BODY_HIT
 
     call ENEMY2_CHECK_PLAYER_COLLISION
-    bnez a0, _PLAYER_CHECK_DAMAGE_COLLISION_HIT
+    bnez a0, _PLAYER_CHECK_DAMAGE_COLLISION_BODY_HIT
 
     call ENEMY1_CHECK_PLAYER_SHOT_COLLISION
     beqz a0, _PLAYER_CHECK_DAMAGE_COLLISION_DONE
 
-_PLAYER_CHECK_DAMAGE_COLLISION_HIT:
     mv a0, a1
+    li a1, ENEMY_SHOT_DAMAGE
+    call PLAYER_APPLY_HIT
+    j _PLAYER_CHECK_DAMAGE_COLLISION_DONE
+
+_PLAYER_CHECK_DAMAGE_COLLISION_BODY_HIT:
+    mv a0, a1
+    li a1, ENEMY_BODY_DAMAGE
     call PLAYER_APPLY_HIT
 
 _PLAYER_CHECK_DAMAGE_COLLISION_DONE:
@@ -1239,17 +1245,22 @@ _PLAYER_APPLY_KNOCKBACK_MOVEMENT_DONE:
 
 # PLAYER_APPLY_HIT
 # a0 = x da fonte do dano no mundo (so para decidir a direcao do knockback)
+# a1 = quantidade de dano a aplicar
 # Decrementa PLAYER_HP (clampado em 0) e ativa invulnerabilidade + knockback.
 # Compartilhado entre colisao com tiro e colisao com corpo de inimigo.
 PLAYER_APPLY_HIT:
     addi sp, sp, -4
     sw   ra, 0(sp)
     mv   t6, a0
+    mv   t5, a1
 
     la t0, PLAYER_HP
     lbu t1, 0(t0)
     beqz t1, _PLAYER_APPLY_HIT_STATUS
-    addi t1, t1, -1
+    sub t1, t1, t5
+    bgez t1, _PLAYER_APPLY_HIT_SAVE_HP
+    li t1, 0
+_PLAYER_APPLY_HIT_SAVE_HP:
     sb t1, 0(t0)
 
 _PLAYER_APPLY_HIT_STATUS:
@@ -1346,6 +1357,7 @@ PLAYER_HANDLE_ENEMY_SHOT_COLLISION:
     bge s1, t6, _PLAYER_HANDLE_ENEMY_SHOT_COLLISION_FALSE
 
     mv a0, s0
+    li a1, ENEMY_SHOT_DAMAGE
     call PLAYER_APPLY_HIT
 
     li a0, 1
@@ -1409,6 +1421,7 @@ PLAYER_HANDLE_ENEMY_BODY_COLLISION:
     bge s1, t6, _PLAYER_HANDLE_ENEMY_BODY_COLLISION_FALSE
 
     mv a0, s0
+    li a1, ENEMY_BODY_DAMAGE
     call PLAYER_APPLY_HIT
 
     li a0, 1
