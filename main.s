@@ -201,13 +201,7 @@ UPDATE_GAME:
 _UPDATE_GAME_AFTER_TRANSITION:
         call CAMERA_UPDATE
 
-        # Na DE1-SoC gp=0; nos simuladores ele aponta para a area de extern.
-        # O FPGRARS local nao implementa MIDI (ecall 31), enquanto o
-        # SYSTEMv24 atende esse servico no hardware.
-        bnez gp, _UPDATE_GAME_SKIP_MUSIC
         call MUSIC_UPDATE
-
-_UPDATE_GAME_SKIP_MUSIC:
 
         lw   ra, 0(sp)
         addi sp, sp, 4
