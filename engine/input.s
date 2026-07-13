@@ -59,14 +59,15 @@
 .eqv SC_MAC_L 37
 
 # Mascaras do keymap PS/2 da FPGA (RISCV-v24).
-# A documentacao usa bit = scancode - 1 dentro do bloco KEYMAP correspondente.
-.eqv PS2_MASK_S 0x04000000  # 0x1B -> KEYMAP0 bit 26
-.eqv PS2_MASK_A 0x08000000  # 0x1C -> KEYMAP0 bit 27
-.eqv PS2_MASK_W 0x10000000  # 0x1D -> KEYMAP0 bit 28
-.eqv PS2_MASK_D 0x00000004  # 0x23 -> KEYMAP1 bit 2
-.eqv PS2_MASK_J 0x04000000  # 0x3B -> KEYMAP1 bit 26
-.eqv PS2_MASK_K 0x00000002  # 0x42 -> KEYMAP2 bit 1
-.eqv PS2_MASK_L 0x00000400  # 0x4B -> KEYMAP2 bit 10
+# O hardware sintetizado mapeia o bit pelo valor direto do scancode. Isso foi
+# confirmado na placa: 0x1B aciona o bit 27, e nao o bit 26 descrito no PDF.
+.eqv PS2_MASK_S 0x08000000  # 0x1B -> KEYMAP0 bit 27
+.eqv PS2_MASK_A 0x10000000  # 0x1C -> KEYMAP0 bit 28
+.eqv PS2_MASK_W 0x20000000  # 0x1D -> KEYMAP0 bit 29
+.eqv PS2_MASK_D 0x00000008  # 0x23 -> KEYMAP1 bit 3
+.eqv PS2_MASK_J 0x08000000  # 0x3B -> KEYMAP1 bit 27
+.eqv PS2_MASK_K 0x00000004  # 0x42 -> KEYMAP2 bit 2
+.eqv PS2_MASK_L 0x00000800  # 0x4B -> KEYMAP2 bit 11
 
 # ---------------------------------------------------------------------------
 # Dados
@@ -119,15 +120,16 @@ READ_INPUT:
         # FPGA: os bits PS/2 usados nao coincidem com os scancodes dos
         # simuladores. Testa primeiro para manter o hardware independente.
         lw t1,0(t0)
-        li t2,0x1C000000     # S, A, W
+        li t2,0x38000000     # S, A, W
         and t3,t1,t2
         bnez t3,READ_INPUT_SELECT_FPGA
         lw t1,4(t0)
-        li t2,0x04000004     # D, J
+        li t2,0x08000008     # D, J
         and t3,t1,t2
         bnez t3,READ_INPUT_SELECT_FPGA
         lw t1,8(t0)
-        andi t3,t1,0x0402    # K, L
+        li t2,0x00000804     # K, L
+        and t3,t1,t2
         bnez t3,READ_INPUT_SELECT_FPGA
 
         # macOS: A/S/D, W e K ficam em bits exclusivos desse backend.
