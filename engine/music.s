@@ -134,7 +134,7 @@ _MUSIC_UPDATE_NEXT:
     li  a7, 31
     lw  a0, 0(s5)
     lw  a1, 4(s5)
-    li  a2, 6                # instrumento (hardware aceita 0 a 15)
+    li  a2, 7                # instrumento (hardware aceita 0 a 15) - Clavinet, timbre tipo baixo
     li  a3, 60
     ecall                     # dispara a nota (nao bloqueia)
 

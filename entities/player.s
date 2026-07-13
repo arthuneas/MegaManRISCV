@@ -594,6 +594,13 @@ _PLAYER_START_SHOOT_SAVE_X:
     la t0, PLAYER_SHOOT_TIMER
     li t1, PLAYER_SHOOT_DURATION
     sw t1, 0(t0)
+
+    li a7, 31
+    li a0, SFX_SHOOT_NOTE
+    li a1, SFX_SHOOT_DURATION
+    li a2, SFX_SHOOT_INSTRUMENT
+    li a3, SFX_SHOOT_VOLUME
+    ecall
     ret
 
 # PLAYER_UPDATE_SHOTS
