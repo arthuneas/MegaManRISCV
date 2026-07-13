@@ -103,6 +103,10 @@ READ_INPUT:
         li t0,KEYMAP_ADDR
         mv t4,zero          # t4 = INPUT_CURRENT calculado
 
+        # A RISCV-v24 inicializa gp=0 na DE1-SoC. Seleciona o KeyMap PS/2
+        # diretamente no hardware, sem passar pela heuristica dos simuladores.
+        beqz gp,READ_INPUT_FORCE_FPGA
+
         # O FPGRARS usa scancodes diferentes em Linux e macOS. K/Linux e
         # L/macOS, por exemplo, ocupam o mesmo bit, portanto os layouts nao
         # podem ser decodificados ao mesmo tempo. Detecta o backend por uma
@@ -146,7 +150,14 @@ READ_INPUT:
         bnez t3,READ_INPUT_SELECT_LINUX
         lbu t1,4(t0)
         andi t3,t1,0x11      # D, J
-        beqz t3,READ_INPUT_LINUX
+        bnez t3,READ_INPUT_SELECT_LINUX
+        j READ_INPUT_LINUX
+
+READ_INPUT_FORCE_FPGA:
+        la t5,INPUT_KEYMAP_MODE
+        li t6,INPUT_KEYMAP_FPGA
+        sw t6,0(t5)
+        j READ_INPUT_FPGA
 
 READ_INPUT_SELECT_LINUX:
         li t6,INPUT_KEYMAP_LINUX
