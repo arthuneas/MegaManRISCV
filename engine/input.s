@@ -103,7 +103,7 @@ READ_INPUT:
         li t0,KEYMAP_ADDR
         mv t4,zero          # t4 = INPUT_CURRENT calculado
 
-        # A RISCV-v24 inicializa gp=0 na DE1-SoC. Seleciona o KeyMap PS/2
+        # O build fpga.s define gp=0 antes do main. Seleciona o KeyMap PS/2
         # diretamente no hardware, sem passar pela heuristica dos simuladores.
         beqz gp,READ_INPUT_FORCE_FPGA
 
