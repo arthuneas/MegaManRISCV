@@ -33,6 +33,11 @@
 
 .eqv KEYMAP_ADDR 0xFF200520
 
+.eqv INPUT_KEYMAP_UNKNOWN 0
+.eqv INPUT_KEYMAP_LINUX   1
+.eqv INPUT_KEYMAP_MACOS   2
+.eqv INPUT_KEYMAP_FPGA    3
+
 # Scancodes FPGRARS/glutin para teclas fisicas.
 # Se alguma tecla nao responder em outro ambiente, ajuste estes valores.
 .eqv SC_W 17
@@ -72,6 +77,7 @@ INPUT_CURRENT:       .word 0    # Teclas consideradas pressionadas neste frame
 INPUT_PREVIOUS:      .word 0    # Estado do frame anterior
 INPUT_PRESSED:       .word 0    # Bits que ligaram neste frame
 INPUT_RELEASED:      .word 0    # Bits que desligaram neste frame
+INPUT_KEYMAP_MODE:   .word INPUT_KEYMAP_UNKNOWN
 
 .text
 
@@ -97,6 +103,73 @@ READ_INPUT:
         li t0,KEYMAP_ADDR
         mv t4,zero          # t4 = INPUT_CURRENT calculado
 
+        # O FPGRARS usa scancodes diferentes em Linux e macOS. K/Linux e
+        # L/macOS, por exemplo, ocupam o mesmo bit, portanto os layouts nao
+        # podem ser decodificados ao mesmo tempo. Detecta o backend por uma
+        # tecla sem ambiguidade e guarda o resultado. Enquanto nenhuma delas
+        # foi usada, Linux e o padrao.
+        la t5,INPUT_KEYMAP_MODE
+        lw t6,0(t5)
+        bnez t6,READ_INPUT_DISPATCH
+
+        # FPGA: os bits PS/2 usados nao coincidem com os scancodes dos
+        # simuladores. Testa primeiro para manter o hardware independente.
+        lw t1,0(t0)
+        li t2,0x1C000000     # S, A, W
+        and t3,t1,t2
+        bnez t3,READ_INPUT_SELECT_FPGA
+        lw t1,4(t0)
+        li t2,0x04000004     # D, J
+        and t3,t1,t2
+        bnez t3,READ_INPUT_SELECT_FPGA
+        lw t1,8(t0)
+        andi t3,t1,0x0402    # K, L
+        bnez t3,READ_INPUT_SELECT_FPGA
+
+        # macOS: A/S/D, W e K ficam em bits exclusivos desse backend.
+        lw t1,0(t0)
+        andi t3,t1,0x07
+        bnez t3,READ_INPUT_SELECT_MACOS
+        lbu t1,1(t0)
+        andi t3,t1,0x20
+        bnez t3,READ_INPUT_SELECT_MACOS
+        lbu t1,5(t0)
+        andi t3,t1,0x01
+        bnez t3,READ_INPUT_SELECT_MACOS
+
+        # Linux: W, A/S/D e J tambem permitem identificar o backend.
+        lbu t1,2(t0)
+        andi t3,t1,0x02
+        bnez t3,READ_INPUT_SELECT_LINUX
+        lbu t1,3(t0)
+        andi t3,t1,0xC0
+        bnez t3,READ_INPUT_SELECT_LINUX
+        lbu t1,4(t0)
+        andi t3,t1,0x11      # D, J
+        beqz t3,READ_INPUT_LINUX
+
+READ_INPUT_SELECT_LINUX:
+        li t6,INPUT_KEYMAP_LINUX
+        sw t6,0(t5)
+        j READ_INPUT_LINUX
+
+READ_INPUT_SELECT_MACOS:
+        li t6,INPUT_KEYMAP_MACOS
+        sw t6,0(t5)
+        j READ_INPUT_MACOS
+
+READ_INPUT_SELECT_FPGA:
+        li t6,INPUT_KEYMAP_FPGA
+        sw t6,0(t5)
+        j READ_INPUT_FPGA
+
+READ_INPUT_DISPATCH:
+        li t1,INPUT_KEYMAP_MACOS
+        beq t6,t1,READ_INPUT_MACOS
+        li t1,INPUT_KEYMAP_FPGA
+        beq t6,t1,READ_INPUT_FPGA
+
+READ_INPUT_LINUX:
         # W: scancode 17 -> byte 2, bit 1
         lbu t1,2(t0)
         andi t2,t1,0x02
@@ -131,19 +204,18 @@ READ_INPUT_CHECK_J:
 
 READ_INPUT_CHECK_K:
         # K: scancode 37 -> byte 4, bit 5
-        # No macOS esse mesmo bit e a tecla L; K e tratado no bloco macOS.
         andi t2,t1,0x20
         beqz t2,READ_INPUT_CHECK_L
-        ori t4,t4,INPUT_SWITCH
+        ori t4,t4,INPUT_JUMP
 
 READ_INPUT_CHECK_L:
         # L: scancode 38 -> byte 4, bit 6
-        # No macOS esse mesmo bit e a tecla J; por isso nao troca arma aqui.
         andi t2,t1,0x40
-        beqz t2,READ_INPUT_SAVE_CURRENT
-        ori t4,t4,INPUT_SHOOT
+        beqz t2,READ_INPUT_STORE_CURRENT
+        ori t4,t4,INPUT_SWITCH
+        j READ_INPUT_STORE_CURRENT
 
-READ_INPUT_SAVE_CURRENT:
+READ_INPUT_MACOS:
         # macOS: usa o mesmo keymap continuo, mas com scancodes ANSI.
         # Isso evita depender de repeticao de evento ASCII para movimento.
         lbu t1,0(t0)
@@ -183,10 +255,18 @@ READ_INPUT_CHECK_MAC_K:
         # K: scancode 40 -> byte 5, bit 0
         lbu t1,5(t0)
         andi t2,t1,0x01
-        beqz t2,READ_INPUT_CHECK_PS2
+        beqz t2,READ_INPUT_CHECK_MAC_L
         ori t4,t4,INPUT_JUMP
 
-READ_INPUT_CHECK_PS2:
+READ_INPUT_CHECK_MAC_L:
+        # L: scancode 37 -> byte 4, bit 5
+        lbu t1,4(t0)
+        andi t2,t1,0x20
+        beqz t2,READ_INPUT_STORE_CURRENT
+        ori t4,t4,INPUT_SWITCH
+        j READ_INPUT_STORE_CURRENT
+
+READ_INPUT_FPGA:
         # FPGA PS/2: KeyMap0..3 guardam scancodes PS/2 em 128 bits.
         # Bits conforme RISCV-v24.pdf.
         lw t1,0(t0)          # KEYMAP0: scancodes 00 a 1F

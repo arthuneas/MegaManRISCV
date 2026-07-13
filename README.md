@@ -153,3 +153,16 @@ O conversor gera um arquivo com:
 - Word 0: largura em pixels
 - Word 1: altura em pixels  
 - Restante: dados de cor, 1 word por pixel
+
+## FPGA / DE1-SoC
+
+A entrada da placa e `fpga.s`, que inclui o `SYSTEMv24` e instala seu tratador
+por meio do `MACROSv24`. O RARS customizado necessario esta incluido no
+repositorio. Para gerar `de1_text.mif` e `de1_data.mif`:
+
+```bash
+./fpga/build.sh
+```
+
+Veja [`fpga/README.md`](fpga/README.md) para as instrucoes de programacao e
+configuracao da placa.
