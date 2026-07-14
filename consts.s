@@ -28,7 +28,7 @@ KNOCKBACK_VEL_X:         .word 0
 .eqv FRAME_MS 30   # aproximacao do tempo por frame (ver WAIT_FRAME), usado para decrementar os timers acima
 .eqv ENEMY_SHOT_DAMAGE 2
 .eqv ENEMY_BODY_DAMAGE 4
-.eqv BOSS_HP_MAX 28
+.eqv BOSS_HP_MAX 40
 .eqv BOSS_DEATH_RESTART_DELAY 120
 .eqv ITEM_RECHARGE_AMOUNT 4
 .eqv ENEMY_RESPAWN_DELAY 180  # 5,4 s a 30 ms/frame; pausa no Time Stopper
