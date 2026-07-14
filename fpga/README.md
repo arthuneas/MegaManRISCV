@@ -35,3 +35,10 @@ fpga/build/de1_data.mif
    desabilita a tela de debug.
 
 Controles: `WASD` movem, `J` atira, `K` pula e `L` troca a habilidade.
+
+## Audio
+
+Musica e efeitos usam o MIDI Out assincrono (`ecall 31`) do `SYSTEMv24`. O
+sintetizador da RISCV-v24 aceita ate oito notas simultaneas. O MIDI Out
+sincrono (`ecall 33`) nao e usado, pois ele so retorna depois do termino da
+nota e bloquearia o loop do jogo.

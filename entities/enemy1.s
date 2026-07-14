@@ -788,7 +788,7 @@ _ENEMY_DEAD_SPAWN_LOOP:
     addi t4, t4, 1
     li t5, ENEMY_DEAD_EFFECTS_MAX
     blt t4, t5, _ENEMY_DEAD_SPAWN_LOOP
-    j _ENEMY_DEAD_SPAWN_SFX
+    ret
 
 _ENEMY_DEAD_SPAWN_FOUND:
     li t5, 1
@@ -797,13 +797,6 @@ _ENEMY_DEAD_SPAWN_FOUND:
     sh a1, 0(t2)
     sw zero, 0(t3)
 
-_ENEMY_DEAD_SPAWN_SFX:
-    li a7, 31
-    li a0, SFX_ENEMY_DEAD_NOTE
-    li a1, SFX_ENEMY_DEAD_DURATION
-    li a2, SFX_ENEMY_DEAD_INSTRUMENT
-    li a3, SFX_ENEMY_DEAD_VOLUME
-    ecall
     ret
 
 

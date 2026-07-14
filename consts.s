@@ -110,13 +110,3 @@ RENDER_COLOR_ADD:       .word 0
 .eqv HUD_LIFEBAR_SEG_H   3
 .eqv HUD_ENERGYBAR_X     18
 .eqv HUD_ENERGY_COLOR    240
-
-# ===========================================================================
-# SFX (ecall 31: a0=nota MIDI, a1=duracao ms, a2=instrumento 0-15, a3=volume)
-# ===========================================================================
-
-
-.eqv SFX_ENEMY_DEAD_NOTE       43   # G2, grave pra soar como impacto
-.eqv SFX_ENEMY_DEAD_DURATION   180
-.eqv SFX_ENEMY_DEAD_INSTRUMENT 12   # Marimba
-.eqv SFX_ENEMY_DEAD_VOLUME     110
