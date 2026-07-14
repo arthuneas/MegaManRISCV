@@ -69,7 +69,9 @@
 .eqv PS2_MASK_J 0x08000000  # 0x3B -> KEYMAP1 bit 27
 .eqv PS2_MASK_K 0x00000004  # 0x42 -> KEYMAP2 bit 2
 .eqv PS2_MASK_L 0x00000800  # 0x4B -> KEYMAP2 bit 11
-.eqv PS2_MASK_ENTER 0x04000000 # 0x5A -> KEYMAP2 bit 26
+# Enter 0x5A: aceita bit direto (26) e a variante deslocada (25) presente em
+# revisoes da RISCV-v24. Nenhum dos dois bits e usado pelos controles do jogo.
+.eqv PS2_MASK_ENTER 0x06000000
 
 # ---------------------------------------------------------------------------
 # Dados
@@ -130,7 +132,7 @@ READ_INPUT:
         and t3,t1,t2
         bnez t3,READ_INPUT_SELECT_FPGA
         lw t1,8(t0)
-        li t2,0x04000804     # K, L, Enter
+        li t2,0x06000804     # K, L, Enter (duas variantes da v24)
         and t3,t1,t2
         bnez t3,READ_INPUT_SELECT_FPGA
 
